@@ -10,6 +10,7 @@ Mesh loadFile(GLuint program, std::string fileName) {
 	int nv;
 	int nn;
 	int ni;
+	
 	int i;
 
 
@@ -78,23 +79,35 @@ Mesh loadFile(GLuint program, std::string fileName) {
 		_close(fid);
 	}
 
-	mesh = Mesh(vertices, normals, indices, nv, nn, ni);
+	int vert = nv / 3;
+	int nt = 2 * vert;
+	GLfloat* tex = new GLfloat[nt];
+	for (int i = 0; i < vert; i++) {
+		GLfloat x = vertices[3 * i];
+		GLfloat y = vertices[3 * i+1];
+		GLfloat z = vertices[3 * i+2];
+		double theta = atan2(x, z);
+		double phi = atan2(y, sqrt(x*x + z * z));
+		tex[2 * i] = fabs(theta) / M_PI;
+		tex[2 * i + 1] = phi / M_PI;
+	}
+	mesh = Mesh(vertices, normals, tex, indices, nv, nn, ni, nt);
 	mesh.sendToGPU(program);
 	return mesh;
 }
-
+/*
 Mesh createQuad(GLuint program) {
 	GLfloat *vertices;
 	vertices = new GLfloat[12];
 	for (int i = 0; i < 12; i++) {
 		vertices[i] = -4.0f;
 	}
-	/*
+
 	-1, -1, -2, bot left
 	1, -1, -2, bot right
 	-1, 1, -2, top left
 	1, 1, -2 top right
-	*/
+
 	vertices[3] = 4.0f;
 	vertices[7] = 4.0f;
 	vertices[9] = 4.0f;
@@ -142,4 +155,4 @@ Mesh createQuad(GLuint program) {
 	Mesh mesh = Mesh(vertices, normals, indices, nv, nn, ni);
 	mesh.sendToGPU(program);
 	return mesh;
-}
+}*/

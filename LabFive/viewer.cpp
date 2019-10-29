@@ -26,7 +26,7 @@
 #include "Mesh.h"
 #include "tiny_obj_loader.h"
 #include "CreateGeometry.h"
-
+#include "Texture.h"
 
 #include <fcntl.h>
 #include <sys/types.h>
@@ -61,6 +61,8 @@ double getSeconds() {
 }
 
 void init() {
+
+	
 	int fs;
 	int vs;
 	glEnable(GL_DEPTH_TEST);
@@ -69,13 +71,28 @@ void init() {
 
 	projection = glm::perspective(0.7f, 1.0f, 1.0f, 100.0f);
 
-	vs = buildShader(GL_VERTEX_SHADER, (char*)"lab2.vs");
-	fs = buildShader(GL_FRAGMENT_SHADER, (char*)"lab2.fs");
+	vs = buildShader(GL_VERTEX_SHADER, (char*)"Assign2.vs");
+	fs = buildShader(GL_FRAGMENT_SHADER, (char*)"Assign2.fs");
 	program = buildProgram(vs, fs, 0);
 	dumpProgram(program, (char*)"Lab 2 shader program");
 	
-	isQuad = 1;
-	meshes.push_back(loadFile(program, "sphere"));
+	Mesh mesh = loadFile(program, "sphere");
+	struct Cube* textureCube = loadCube("./vancouverThing");
+	glGenTextures(1, mesh.getTBufferPointer());
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, mesh.getTBuffer());
+	for (int i = 0; i < 6; i++) {
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, textureCube->width, textureCube->height,
+			0, GL_RGB, GL_UNSIGNED_BYTE, textureCube->data[i]);
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+
+	meshes.push_back(mesh);
 
 
 }
@@ -108,11 +125,12 @@ void render(Mesh mesh) {
 
 	loadUniformMat4(program, "projection", projection);
 	loadUniform3f(program, "Eye", eyex, eyey, eyez);
-	loadUniform3f(program, "light", 0.0f, 0.0f, 0.0f);
+	loadUniform3f(program, "light", eyex, eyey, eyez);
 
 
 
 	glBindVertexArray(mesh.objVAO);
+	mesh.loadAttrib(program);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.getiBuffer());
 	double t1 = getSeconds();
 	glDrawElements(GL_TRIANGLES, 3 * mesh.getTriangles(), GL_UNSIGNED_INT, NULL);
