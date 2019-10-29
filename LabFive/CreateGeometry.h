@@ -14,3 +14,5 @@
 Mesh loadFile(GLuint program, std::string fileName);
 
 Mesh createQuad(GLuint program);
+
+Mesh createCube(GLuint program);

@@ -95,6 +95,52 @@ Mesh loadFile(GLuint program, std::string fileName) {
 	mesh.sendToGPU(program);
 	return mesh;
 }
+
+Mesh createCube(GLuint program) {
+	GLfloat vertices[8 * 3] = {
+	-1.0, -1.0, -1.0,		//0
+	-1.0, -1.0, 1.0,		//1
+	-1.0, 1.0, -1.0,		//2
+	-1.0, 1.0, 1.0, 		//3
+	1.0, -1.0, -1.0,		//4
+	1.0, -1.0, 1.0,		//5
+	1.0, 1.0, -1.0,		//6
+	1.0, 1.0, 1.0,			//7
+	};
+
+	GLfloat normals[8 * 3] = {
+	-1.0, -1.0, -1.0,			//0
+	-1.0, -1.0, 1.0,			//1
+	-1.0, 1.0, -1.0,			//2
+	-1.0, 1.0, 1.0,				//3
+	1.0, -1.0, -1.0,			//4
+	1.0, -1.0, 1.0,				//5
+	1.0, 1.0, -1.0,				//6
+	1.0, 1.0, 1.0				//7
+	};
+
+	GLfloat tex[8 * 2] = {
+		-1.0, -1.0,			//0
+		-1.0, -1.0,			//1
+		-1.0, 1.0,			//2
+		-1.0, 1.0,				//3
+		1.0, -1.0,			//4
+		1.0, -1.0,				//5
+		1.0, 1.0,				//6
+		1.0, 1.0,				//7
+	};
+
+	GLuint indexes[36] = { 0, 1, 3, 0, 2, 3,
+		0, 4, 5, 0, 1, 5,
+		2, 6, 7, 2, 3, 7,
+		0, 4, 6, 0, 2, 6,
+		1, 5, 7, 1, 3, 7,
+		4, 5, 7, 4, 6, 7 };
+
+	Mesh mesh = Mesh(vertices, normals, tex, indexes, 8 * 3, 8 * 3, 36, 8 * 2);
+	mesh.sendToGPU(program);
+	return mesh;
+}
 /*
 Mesh createQuad(GLuint program) {
 	GLfloat *vertices;

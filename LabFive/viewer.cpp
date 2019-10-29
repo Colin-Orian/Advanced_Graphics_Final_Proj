@@ -41,6 +41,7 @@ double theta, phi;		// user's position  on a sphere centered on the object
 double r;				// radius of the sphere
 
 GLuint program;
+GLuint skyboxProgam;
 GLuint shadowProgram;
 glm::mat4 projection;	// projection matrix
 
@@ -50,6 +51,7 @@ int isQuad;
 GLuint shadowBuff;
 GLuint shadowTex;
 GLuint colourTex;
+
 glm::mat4 shadowMatrix;
 unsigned int WIDTH = 512;
 unsigned int HEIGHT = 512;
@@ -76,6 +78,10 @@ void init() {
 	program = buildProgram(vs, fs, 0);
 	dumpProgram(program, (char*)"Lab 2 shader program");
 	
+	vs = buildShader(GL_VERTEX_SHADER, (char*)"SkyboxVertex.hlsl");
+	fs = buildShader(GL_FRAGMENT_SHADER, (char*)"SkyboxFrag.hlsl");
+	skyboxProgam = buildProgram(vs, fs, 0);
+
 	Mesh mesh = loadFile(program, "sphere");
 	struct Cube* textureCube = loadCube("./vancouverThing");
 	glGenTextures(1, mesh.getTBufferPointer());
@@ -91,9 +97,9 @@ void init() {
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-
 	meshes.push_back(mesh);
 
+	//meshes.push_back(loadFile(skyboxProgam, "cube"));
 
 }
 
@@ -115,22 +121,31 @@ void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
 
 }
 
-void render(Mesh mesh) {
+void render(Mesh mesh, bool isSphere) {
 	glm::mat4 view;
 	view = glm::lookAt(glm::vec3(eyex, eyey, eyez),
 		glm::vec3(0.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f));
 
-	loadUniformMat4(program, "modelView", view);
-
-	loadUniformMat4(program, "projection", projection);
-	loadUniform3f(program, "Eye", eyex, eyey, eyez);
-	loadUniform3f(program, "light", eyex, eyey, eyez);
+	
 
 
-
+	isSphere = true;
 	glBindVertexArray(mesh.objVAO);
-	mesh.loadAttrib(program);
+	if (isSphere) {
+		loadUniformMat4(program, "modelView", view);
+		loadUniformMat4(program, "projection", projection);
+		loadUniform3f(program, "Eye", eyex, eyey, eyez);
+		loadUniform3f(program, "light", eyex, eyey, eyez);
+		mesh.loadAttrib(program);
+	}
+	else {
+
+		loadUniformMat4(skyboxProgam, "modelView", view);
+		loadUniformMat4(skyboxProgam, "projection", projection);
+		mesh.loadAttrib(skyboxProgam);
+	}
+	
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.getiBuffer());
 	double t1 = getSeconds();
 	glDrawElements(GL_TRIANGLES, 3 * mesh.getTriangles(), GL_UNSIGNED_INT, NULL);
@@ -140,8 +155,11 @@ void display(void) {
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(program);
+	bool isSphere = true;
 	for (Mesh mesh : meshes) {
-		render(mesh);
+		
+		render(mesh, isSphere);
+		isSphere = !isSphere;
 	}
 	
 	glFinish();
