@@ -12,6 +12,14 @@
 #include <io.h>
 #include <iostream>
 
+struct VertexData {
+	std::vector<GLfloat> vertex;
+	std::vector<GLfloat> normals;
+	std::vector<GLuint> indicies;
+};
+
 Mesh loadFile(GLuint program, std::string fileName);
+
+Mesh loadFile(GLuint program, struct VertexData vertexData, std::string fileName);
 
 Mesh createCube(GLuint program);

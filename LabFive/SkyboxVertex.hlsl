@@ -13,7 +13,7 @@ out vec3 f_position;
 void main() {
 	vec2 temp = vTex;
 	vec3 temp3 = vNormal;
-	f_position = vPosition.xyz;
+	f_position = (transMat * vPosition).xyz;
 	gl_Position = projection * view * transMat * vPosition;
 	
 	normal = temp3;

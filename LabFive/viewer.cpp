@@ -82,12 +82,19 @@ void init() {
 	fs = buildShader(GL_FRAGMENT_SHADER, (char*)"SkyboxFrag.hlsl");
 	skyboxProgam = buildProgram(vs, fs, 0);
 
+	struct VertexData sphereData;
+	Mesh mesh = loadFile(program, sphereData, "sphere");
 
-	Mesh mesh = loadFile(program, "sphere");
+
+	
+	struct VertexData cubeData;
+	/*
+	Mesh cubeMesh = loadFile(skyboxProgam, cubeData, "cube");
+	
 	struct Cube* textureCube = loadCube("./vancouverThing");
-	glGenTextures(1, mesh.getTBufferPointer());
+	glGenTextures(1, cubeMesh.getTBufferPointer());
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, mesh.getTBuffer());
+	glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMesh.getTBuffer());
 	for (int i = 0; i < 6; i++) {
 		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, textureCube->width, textureCube->height,
 			0, GL_RGB, GL_UNSIGNED_BYTE, textureCube->data[i]);
@@ -97,15 +104,25 @@ void init() {
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	*/
+	
 
 	struct Cube* irradianceMap = loadCube("./lowResCube");
-
-
+	glGenTextures(1, mesh.getTBufferPointer());
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, mesh.getTBuffer());
+	for (int i = 0; i < 6; i++) {
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, irradianceMap->width, irradianceMap->height,
+			0, GL_RGB, GL_UNSIGNED_BYTE, irradianceMap->data[i]);
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	
 	meshes.push_back(mesh);
-
-	Mesh cubeMesh = loadFile(skyboxProgam, "cube");
 	//meshes.push_back(cubeMesh);
-
 }
 
 void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
@@ -132,9 +149,11 @@ void render(Mesh mesh, bool isSphere) {
 		glm::vec3(0.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f));
 
-	
-
 	isSphere = true;
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, mesh.getTBuffer());
+	
 	glBindVertexArray(mesh.objVAO);
 	if (isSphere) {
 		glUseProgram(program);

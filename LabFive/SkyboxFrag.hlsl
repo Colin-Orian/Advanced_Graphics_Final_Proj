@@ -1,4 +1,9 @@
 #version 330 core
+uniform samplerCube tex;
+in vec3 normal;
+in vec3 f_position;
 void main() {
-	gl_FragColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+	vec4 colour = texture(tex, f_position);
+	gl_FragColor = colour;
+
 }

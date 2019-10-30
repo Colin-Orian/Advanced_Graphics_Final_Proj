@@ -1,6 +1,7 @@
 #include "CreateGeometry.h"
-Mesh loadFile(GLuint program, std::string fileName) {
+Mesh loadFile(GLuint program, struct VertexData vertData, std::string fileName) {
 	Mesh mesh;
+	std::vector<GLfloat> vertVector;
 	GLfloat* vertices;
 	GLfloat* normals;
 	GLuint* indices;
@@ -11,11 +12,8 @@ Mesh loadFile(GLuint program, std::string fileName) {
 	int ni;
 	
 	int i;
-
-	std::cout << &vertices << std::endl;
 	struct _stat buf;
 	std::string binName = fileName + ".bin";
-	std::cout << binName << std::endl;
 	std::string objName = fileName + ".obj";
 	
 	int result = _stat(binName.c_str(), &buf);
@@ -50,6 +48,7 @@ Mesh loadFile(GLuint program, std::string fileName) {
 		vertices = new GLfloat[nv];
 		for (i = 0; i < nv; i++) {
 			vertices[i] = shapes[0].mesh.positions[i];
+			vertData.vertex[i] = shapes[0].mesh.positions[i];
 		}
 
 		/*  Retrieve the vertex normals */
@@ -99,25 +98,23 @@ Mesh loadFile(GLuint program, std::string fileName) {
 
 Mesh createCube(GLuint program) {
 	GLfloat vertices[8 * 3] = {
-	-1.0, -1.0, -1.0,		//0
-	-1.0, -1.0, 1.0,		//1
-	-1.0, 1.0, -1.0,		//2
-	-1.0, 1.0, 1.0, 		//3
-	1.0, -1.0, -1.0,		//4
-	1.0, -1.0, 1.0,		//5
-	1.0, 1.0, -1.0,		//6
-	1.0, 1.0, 1.0,			//7
+	1.0, -1.0, -1.0,		//0
+	1.0, -1.0, 1.0,		//1
+	-1.0, -1.0, 1.0,		//2
+	-1.0, -1.0, -1.0, 		//3
+	1.0, 1.0, -1.0,		//4
+	1.0, 1.0, 1.0,		//5
+	-1.0, 1.0, 1.0,		//6
+	-1.0, 1.0, -1.0,			//7
 	};
 
-	GLfloat normals[8 * 3] = {
-	-1.0, -1.0, -1.0,			//0
-	-1.0, -1.0, 1.0,			//1
-	-1.0, 1.0, -1.0,			//2
-	-1.0, 1.0, 1.0,				//3
-	1.0, -1.0, -1.0,			//4
-	1.0, -1.0, 1.0,				//5
-	1.0, 1.0, -1.0,				//6
-	1.0, 1.0, 1.0				//7
+	GLfloat normals[6 * 3] = {
+	0.0, -1.0, 0.0,			//0
+	0.0, 1.0, 0.0,			//1
+	1.0, 0.0, 0.0,			//2
+	0.0, 0.0, 1.0,				//3
+	-1.0, 0.0, 0.0,			//4
+				//7
 	};
 
 	GLfloat tex[8 * 2] = {
