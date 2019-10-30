@@ -51,6 +51,8 @@ void Mesh::loadAttrib(GLuint program) {
 }
 
 void Mesh::sendToGPU(GLuint program){
+
+
 	glGenVertexArrays(1, &objVAO);
 	glBindVertexArray(objVAO);
 

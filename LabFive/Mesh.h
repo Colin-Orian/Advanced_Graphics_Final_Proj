@@ -17,6 +17,7 @@ private:
 	GLuint ibuffer;			// index buffer identifier
 	GLuint tBuffer;
 
+
 	int numVert;
 	int numNorm;
 	int numTex;

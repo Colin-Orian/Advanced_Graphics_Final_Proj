@@ -82,6 +82,7 @@ void init() {
 	fs = buildShader(GL_FRAGMENT_SHADER, (char*)"SkyboxFrag.hlsl");
 	skyboxProgam = buildProgram(vs, fs, 0);
 
+
 	Mesh mesh = loadFile(program, "sphere");
 	struct Cube* textureCube = loadCube("./vancouverThing");
 	glGenTextures(1, mesh.getTBufferPointer());
@@ -97,9 +98,13 @@ void init() {
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
+	struct Cube* irradianceMap = loadCube("./lowResCube");
+
+
 	meshes.push_back(mesh);
 
-	//meshes.push_back(loadFile(skyboxProgam, "cube"));
+	Mesh cubeMesh = loadFile(skyboxProgam, "cube");
+	//meshes.push_back(cubeMesh);
 
 }
 
@@ -129,10 +134,10 @@ void render(Mesh mesh, bool isSphere) {
 
 	
 
-
 	isSphere = true;
 	glBindVertexArray(mesh.objVAO);
 	if (isSphere) {
+		glUseProgram(program);
 		loadUniformMat4(program, "modelView", view);
 		loadUniformMat4(program, "projection", projection);
 		loadUniform3f(program, "Eye", eyex, eyey, eyez);
@@ -141,7 +146,11 @@ void render(Mesh mesh, bool isSphere) {
 	}
 	else {
 
-		loadUniformMat4(skyboxProgam, "modelView", view);
+		glm::mat4 transMat = glm::mat4(1.0f);
+		transMat = glm::scale(transMat, glm::vec3(10, 10, 10));
+		glUseProgram(skyboxProgam);
+		loadUniformMat4(skyboxProgam, "transMat", transMat);
+		loadUniformMat4(skyboxProgam, "view", view);
 		loadUniformMat4(skyboxProgam, "projection", projection);
 		mesh.loadAttrib(skyboxProgam);
 	}
@@ -154,7 +163,7 @@ void render(Mesh mesh, bool isSphere) {
 void display(void) {
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glUseProgram(program);
+	
 	bool isSphere = true;
 	for (Mesh mesh : meshes) {
 		

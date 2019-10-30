@@ -1,10 +1,9 @@
 #include "CreateGeometry.h"
 Mesh loadFile(GLuint program, std::string fileName) {
 	Mesh mesh;
-
-	GLfloat *vertices;
-	GLfloat *normals;
-	GLuint *indices;
+	GLfloat* vertices;
+	GLfloat* normals;
+	GLuint* indices;
 	std::vector<tinyobj::shape_t> shapes;
 	std::vector<tinyobj::material_t> materials;
 	int nv;
@@ -13,7 +12,7 @@ Mesh loadFile(GLuint program, std::string fileName) {
 	
 	int i;
 
-
+	std::cout << &vertices << std::endl;
 	struct _stat buf;
 	std::string binName = fileName + ".bin";
 	std::cout << binName << std::endl;
@@ -91,6 +90,8 @@ Mesh loadFile(GLuint program, std::string fileName) {
 		tex[2 * i] = fabs(theta) / M_PI;
 		tex[2 * i + 1] = phi / M_PI;
 	}
+
+	
 	mesh = Mesh(vertices, normals, tex, indices, nv, nn, ni, nt);
 	mesh.sendToGPU(program);
 	return mesh;

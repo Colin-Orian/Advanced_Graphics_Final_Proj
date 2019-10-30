@@ -1,7 +1,8 @@
 
 #version 330 core
-uniform mat4 modelView;
+uniform mat4 view;
 uniform mat4 projection;
+uniform mat4 transMat;
 in vec4 vPosition;
 in vec3 vNormal;
 in vec2 vTex;
@@ -13,7 +14,7 @@ void main() {
 	vec2 temp = vTex;
 	vec3 temp3 = vNormal;
 	f_position = vPosition.xyz;
-	gl_Position = projection * modelView * vPosition;
+	gl_Position = projection * view * transMat * vPosition;
 	
 	normal = temp3;
 

@@ -11,8 +11,7 @@
 #include <fcntl.h>
 #include <io.h>
 #include <iostream>
-Mesh loadFile(GLuint program, std::string fileName);
 
-Mesh createQuad(GLuint program);
+Mesh loadFile(GLuint program, std::string fileName);
 
 Mesh createCube(GLuint program);
