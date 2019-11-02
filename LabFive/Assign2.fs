@@ -50,6 +50,8 @@ void main() {
 
 	
 	vec3 tc = mix(reflectCoords, refractCoords, schlick);
+
+	tc = normal;
 	base = texture(tex, tc);
 	gl_FragColor = (0.5 * base + 0.6 * diffuse * base + 0.6 *specular * white);
 	gl_FragColor.a = 1.0;

@@ -45,7 +45,6 @@ GLuint skyboxProgam;
 GLuint shadowProgram;
 glm::mat4 projection;	// projection matrix
 
-Mesh mesh;
 std::vector<Mesh> meshes;
 int isQuad;
 GLuint shadowBuff;
@@ -82,14 +81,11 @@ void init() {
 	fs = buildShader(GL_FRAGMENT_SHADER, (char*)"SkyboxFrag.hlsl");
 	skyboxProgam = buildProgram(vs, fs, 0);
 
-	struct VertexData sphereData;
-	Mesh mesh = loadFile(program, sphereData, "sphere");
 
+	Mesh cubeMesh = createCube(program);
+	Mesh mesh = loadFile(program, "sphere");
 
 	
-	struct VertexData cubeData;
-	/*
-	Mesh cubeMesh = loadFile(skyboxProgam, cubeData, "cube");
 	
 	struct Cube* textureCube = loadCube("./vancouverThing");
 	glGenTextures(1, cubeMesh.getTBufferPointer());
@@ -104,8 +100,6 @@ void init() {
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	*/
-	
 
 	struct Cube* irradianceMap = loadCube("./lowResCube");
 	glGenTextures(1, mesh.getTBufferPointer());
@@ -122,7 +116,7 @@ void init() {
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	
 	meshes.push_back(mesh);
-	//meshes.push_back(cubeMesh);
+	meshes.push_back(cubeMesh);
 }
 
 void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
@@ -149,24 +143,28 @@ void render(Mesh mesh, bool isSphere) {
 		glm::vec3(0.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f));
 
-	isSphere = true;
+	//isSphere = true;
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, mesh.getTBuffer());
 	
 	glBindVertexArray(mesh.objVAO);
 	if (isSphere) {
+
+		glm::mat4 transMat = glm::mat4(1.0f);
+		transMat = glm::scale(transMat, glm::vec3(3, 3, 3));
+
 		glUseProgram(program);
-		loadUniformMat4(program, "modelView", view);
+		loadUniformMat4(program, "view", view);
+		loadUniformMat4(program, "transMat", transMat);
 		loadUniformMat4(program, "projection", projection);
 		loadUniform3f(program, "Eye", eyex, eyey, eyez);
 		loadUniform3f(program, "light", eyex, eyey, eyez);
 		mesh.loadAttrib(program);
 	}
 	else {
-
 		glm::mat4 transMat = glm::mat4(1.0f);
-		transMat = glm::scale(transMat, glm::vec3(10, 10, 10));
+		//transMat = glm::scale(transMat, glm::vec3(10, 10, 10));
 		glUseProgram(skyboxProgam);
 		loadUniformMat4(skyboxProgam, "transMat", transMat);
 		loadUniformMat4(skyboxProgam, "view", view);

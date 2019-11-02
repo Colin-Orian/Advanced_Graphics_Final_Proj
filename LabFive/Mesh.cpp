@@ -10,6 +10,8 @@ Mesh::Mesh(GLfloat * vertices, GLfloat * normals, GLfloat * tex, GLuint * indice
 	this->normals = new GLfloat[numNorms];
 	this->textures = new GLfloat[numTex];
 
+	
+
 	this->vertices = vertices;
 	this->normals = normals;
 	this->indices = indices;
@@ -36,11 +38,11 @@ Mesh::Mesh(GLfloat * vertices, GLfloat * normals, GLfloat * tex, GLuint * indice
 
 void Mesh::loadAttrib(GLuint program) {
 
-	glUseProgram(program);
+	//glUseProgram(program);
 	vPosition = glGetAttribLocation(program, "vPosition");
 	glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(vPosition);
-
+	
 	vNormal = glGetAttribLocation(program, "vNormal");
 	glVertexAttribPointer(vNormal, 3, GL_FLOAT, GL_FALSE, 0, (void*)(numVert * sizeof(GLfloat)));
 	glEnableVertexAttribArray(vNormal);
@@ -52,25 +54,26 @@ void Mesh::loadAttrib(GLuint program) {
 
 void Mesh::sendToGPU(GLuint program){
 
-
+	
 	glGenVertexArrays(1, &objVAO);
 	glBindVertexArray(objVAO);
 
+	
 	glGenBuffers(1, &vbuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vbuffer);
 	glBufferData(GL_ARRAY_BUFFER, (numVert + numNorm + numTex) * sizeof(GLfloat), NULL, GL_STATIC_DRAW);
-
+	
 	glBufferSubData(GL_ARRAY_BUFFER, 0, numVert * sizeof(GLfloat), vertices); // Verticies
 
 	glBufferSubData(GL_ARRAY_BUFFER, numVert * sizeof(GLfloat), numNorm * sizeof(GLfloat), normals);
 
 	glBufferSubData(GL_ARRAY_BUFFER, (numVert + numNorm) * sizeof(GLfloat), numTex * sizeof(GLfloat), textures);
 
-
-
 	glGenBuffers(1, &ibuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(GLuint), indices, GL_STATIC_DRAW);
+
+	std::cout << &this->vertices << std::endl;
 }
 
 void Mesh::setTBuffer(GLuint tBuffer){
