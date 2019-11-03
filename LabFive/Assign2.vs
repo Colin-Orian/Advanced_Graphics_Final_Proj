@@ -19,9 +19,9 @@ out vec3 f_position;
 out vec4 sPosition;
 
 void main() {
-	vec2 temp = vTex;
-	vec3 temp3 = vNormal;
-	f_position = vPosition.xyz;
+	
+	vec4 temp = transMat * vPosition;
+	f_position = temp.xyz;
 	gl_Position = projection * view * transMat * vPosition;
 	vec3 sphereNormal = (view * vec4(vPosition.xyz,1.0)).xyz;
 	normal = vPosition.xyz;

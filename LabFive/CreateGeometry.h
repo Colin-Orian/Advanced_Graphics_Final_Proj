@@ -20,4 +20,11 @@ struct VertexData {
 
 Mesh loadFile(GLuint program, std::string fileName);
 
+
+GLfloat * getCubeVert();
+
+GLfloat * getCubeNorm();
+
+GLuint * getCubeIndicies();
+
 Mesh createCube(GLuint program);

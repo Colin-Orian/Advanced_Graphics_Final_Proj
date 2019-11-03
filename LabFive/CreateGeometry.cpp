@@ -96,6 +96,45 @@ Mesh loadFile(GLuint program, std::string fileName) {
 	return mesh;
 }
 
+GLfloat* getCubeVert() {
+	GLfloat vertices[8 * 3] = {
+	-1.0, -1.0, -1.0,		//0
+	-1.0, -1.0, 1.0,		//1
+	-1.0, 1.0, -1.0,		//2
+	-1.0, 1.0, 1.0, 		//3
+	1.0, -1.0, -1.0,		//4
+	1.0, -1.0, 1.0,		//5
+	1.0, 1.0, -1.0,		//6
+	1.0, 1.0, 1.0,			//7
+	};
+
+	return vertices;
+}
+
+GLfloat* getCubeNorm() {
+	GLfloat normals[8 * 3] = {
+	-1.0, -1.0, -1.0,			//0
+	-1.0, -1.0, 1.0,			//1
+	-1.0, 1.0, -1.0,			//2
+	-1.0, 1.0, 1.0,				//3
+	1.0, -1.0, -1.0,
+	1.0, -1.0, 1.0,
+	1.0, 1.0, -1.0,
+	1.0, 1.0, 1.0,
+	};
+
+	return normals;
+}
+
+GLuint* getCubeIndicies() {
+	GLuint indexes[36] = { 0, 1, 3, 0, 2, 3,
+	0, 4, 5, 0, 1, 5,
+	2, 6, 7, 2, 3, 7,
+	0, 4, 6, 0, 2, 6,
+	1, 5, 7, 1, 3, 7,
+	4, 5, 7, 4, 6, 7 };
+	return indexes;
+}
 Mesh createCube(GLuint program) {
 	GLfloat vertices[8 * 3] = {
 	-1.0, -1.0, -1.0,		//0

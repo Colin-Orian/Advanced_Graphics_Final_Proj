@@ -36,7 +36,7 @@
 #include <vector>
 
 float eyex, eyey, eyez;	// current user position
-
+float lightx, lighty, lightz;
 double theta, phi;		// user's position  on a sphere centered on the object
 double r;				// radius of the sphere
 
@@ -47,9 +47,11 @@ glm::mat4 projection;	// projection matrix
 
 std::vector<Mesh> meshes;
 int isQuad;
-GLuint shadowBuff;
-GLuint shadowTex;
-GLuint colourTex;
+
+GLuint skyboxVAO;
+GLuint skyVbuffer;
+GLuint skyIndex;
+GLuint skyTex;
 
 glm::mat4 shadowMatrix;
 unsigned int WIDTH = 512;
@@ -61,6 +63,53 @@ double getSeconds() {
 	return (double)val.QuadPart / (double)freq.QuadPart;
 }
 
+void genSkybox() {
+
+	int numVert = 8 * 3;
+	int numNorm = 8 * 3;
+	int numIndices = 36;
+	glGenVertexArrays(1, &skyboxVAO);
+	glBindVertexArray(skyboxVAO);
+
+	glGenBuffers(1, &skyVbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, skyVbuffer);
+	glBufferData(GL_ARRAY_BUFFER, (numVert + numNorm) * sizeof(GLfloat), NULL, GL_STATIC_DRAW);
+
+	glBufferSubData(GL_ARRAY_BUFFER, 0, numVert * sizeof(GLfloat), getCubeVert()); // Verticies
+
+	glBufferSubData(GL_ARRAY_BUFFER, numVert * sizeof(GLfloat), numNorm * sizeof(GLfloat), getCubeNorm());
+
+
+	glGenBuffers(1, &skyIndex);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, skyIndex);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(GLuint), getCubeIndicies(), GL_STATIC_DRAW);
+}
+
+
+void renderSky() {
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skyTex);
+
+	glBindVertexArray(skyboxVAO);
+
+	int numTriangles = 36 / 3;
+	glm::mat4 view;
+	view = glm::lookAt(glm::vec3(eyex, eyey, eyez),
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(0.0f, 0.0f, 1.0f));
+
+	glm::mat4 transMat = glm::mat4(1.0f);
+	transMat = glm::scale(transMat, glm::vec3(10, 10, 10));
+	glUseProgram(skyboxProgam);
+	loadUniformMat4(skyboxProgam, "transMat", transMat);
+	loadUniformMat4(skyboxProgam, "view", view);
+	loadUniformMat4(skyboxProgam, "projection", projection);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, skyIndex);
+	double t1 = getSeconds();
+	glDrawElements(GL_TRIANGLES, 3 * numTriangles, GL_UNSIGNED_INT, NULL);
+}
 void init() {
 
 	
@@ -82,15 +131,14 @@ void init() {
 	skyboxProgam = buildProgram(vs, fs, 0);
 
 
-	Mesh cubeMesh = createCube(program);
 	Mesh mesh = loadFile(program, "sphere");
 
 	
 	
 	struct Cube* textureCube = loadCube("./vancouverThing");
-	glGenTextures(1, cubeMesh.getTBufferPointer());
+	glGenTextures(1, &skyTex);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMesh.getTBuffer());
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skyTex);
 	for (int i = 0; i < 6; i++) {
 		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, textureCube->width, textureCube->height,
 			0, GL_RGB, GL_UNSIGNED_BYTE, textureCube->data[i]);
@@ -116,7 +164,8 @@ void init() {
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	
 	meshes.push_back(mesh);
-	meshes.push_back(cubeMesh);
+
+//	genSkybox();
 }
 
 void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
@@ -146,31 +195,30 @@ void render(Mesh mesh, bool isSphere) {
 	//isSphere = true;
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, mesh.getTBuffer());
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skyTex);
 	
 	glBindVertexArray(mesh.objVAO);
-	if (isSphere) {
 
-		glm::mat4 transMat = glm::mat4(1.0f);
-		transMat = glm::scale(transMat, glm::vec3(3, 3, 3));
 
-		glUseProgram(program);
-		loadUniformMat4(program, "view", view);
-		loadUniformMat4(program, "transMat", transMat);
-		loadUniformMat4(program, "projection", projection);
-		loadUniform3f(program, "Eye", eyex, eyey, eyez);
-		loadUniform3f(program, "light", eyex, eyey, eyez);
-		mesh.loadAttrib(program);
-	}
-	else {
+	glm::mat4 transMat = glm::mat4(1.0f);
+	//transMat = glm::scale(transMat, glm::vec3(3, 3, 3));
+
+	glUseProgram(program);
+	loadUniformMat4(program, "view", view);
+	loadUniformMat4(program, "transMat", transMat);
+	loadUniformMat4(program, "projection", projection);
+	loadUniform3f(program, "Eye", eyex, eyey, eyez);
+	loadUniform3f(program, "light", lightx, lighty, lightz);
+	mesh.loadAttrib(program);
+
+		/*
 		glm::mat4 transMat = glm::mat4(1.0f);
 		//transMat = glm::scale(transMat, glm::vec3(10, 10, 10));
 		glUseProgram(skyboxProgam);
 		loadUniformMat4(skyboxProgam, "transMat", transMat);
 		loadUniformMat4(skyboxProgam, "view", view);
 		loadUniformMat4(skyboxProgam, "projection", projection);
-		mesh.loadAttrib(skyboxProgam);
-	}
+		mesh.loadAttrib(skyboxProgam);*/
 	
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.getiBuffer());
 	double t1 = getSeconds();
@@ -188,6 +236,7 @@ void display(void) {
 		isSphere = !isSphere;
 	}
 	
+	//renderSky();
 	glFinish();
 
 }
@@ -259,9 +308,11 @@ int main(int argc, char **argv) {
 
 	init();
 
-	eyex = -1.0;
-	eyez = 0.0;
-	eyey = 10.0;
+	lightx = eyex = -1.0;
+	lightz = eyez = 0.0;
+	lighty = eyey = 10.0;
+
+
 
 	theta = 1.5;
 	phi = 1.5;

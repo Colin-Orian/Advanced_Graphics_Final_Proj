@@ -37,22 +37,46 @@ void main() {
 
 	//Schlick's Approximation
 	float refractIndexAir = 1.0f; 
-	float refractIndexMat = 5;
-	float f0 = (refractIndexAir - refractIndexMat) / (refractIndexAir + refractIndexMat);
+	float refractIndexMat = 4.0;
+	float f0 = (refractIndexMat - 1) / (refractIndexMat + 1);
 	f0 = f0 * f0;
 
-	float theta = dot(L, normal) / dot(length(L), length(normal));
-	float schlick = f0 + (1 - f0) * (1 - pow(theta, 5));
+	float thetaSchl = dot(L, normal) / (length(L) * length(normal));
+	float schlick = f0 + (1 - f0) * pow(1 - thetaSchl,5);
 
 	vec3 reflectCoords = reflect(-f_position, normal);
 	vec3 refractCoords  = refract(-f_position, normal, refractIndexMat);
 
 
 	
-	vec3 tc = mix(reflectCoords, refractCoords, schlick);
+	vec3 tc = mix(refractCoords, reflectCoords, schlick);
 
-	tc = normal;
+
+	//Part two
+	//tc = normal;
+
+	vec3 tempNorm = vec3(normal.x, normal.z, normal.y);
+	vec3 U = cross(tempNorm, normal);
+	vec3 W = cross(U, normal);
+
+	//Part Three
+	float radius = 0.2;
+	float step = 1.0;
+
+	
+	vec3 result = vec3(0.0);
+	//Go around the circle
+	vec3 V;
+	for(float theta = 0.0; theta < 360.0; theta += step){
+		float rad = radians(theta);
+		vec3 V = radius * cos(rad) * U + radius * sin(rad) * W;
+		result += V;
+	}
+
+	//tc = normalize(result);
+
 	base = texture(tex, tc);
 	gl_FragColor = (0.5 * base + 0.6 * diffuse * base + 0.6 *specular * white);
+	//gl_FragColor = vec4(thetaSchl);
 	gl_FragColor.a = 1.0;
 }
