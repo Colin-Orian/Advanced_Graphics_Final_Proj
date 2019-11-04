@@ -65,28 +65,31 @@ void main() {
 
 	//Part Three
 	float radius = 0.2;
-	float step = 30;
+	float step = 1;
 
 	
 	vec3 result = vec3(0.0);
 	//Go around the circle
 	vec3 V;
-	
+	base = vec4(0.0);
 	for(float theta = 0.0; theta < 360; theta += step){
 		float rad = radians(theta);
 		V = radius * cos(rad) * U + radius * sin(rad) * W;
-		result += normalize(V + normal);
+		result = normalize(V + normal);
+
+		base += texture(tex, result);
 	}
 	float numV = 360 / step;
 	//float rad = radians(step);
 	//V = radius * cos(rad) * U + radius * sin(rad) * W;
 	//result = (V + normal);
 
-	result = result / numV;
+	base = base / numV;
 	//part 3
-	tc = result;
+	//tc = result;
 
-	base = texture(tex, tc);
+	//base = texture(tex, tc);
+	
 	gl_FragColor = (0.5 * base + 0.6 * diffuse * base + 0.6 *specular * white);
 	//gl_FragColor = vec4(result, 1.0);
 	gl_FragColor.a = 1.0;

@@ -27,4 +27,6 @@ GLfloat * getCubeNorm();
 
 GLuint * getCubeIndicies();
 
+Mesh loadCubeFile(GLuint program, std::string fileName);
+
 Mesh createCube(GLuint program);

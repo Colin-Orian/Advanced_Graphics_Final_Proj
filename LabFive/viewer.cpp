@@ -53,6 +53,11 @@ GLuint skyVbuffer;
 GLuint skyIndex;
 GLuint skyTex;
 
+GLuint sphereVAO;
+GLuint sphereVbuffer;
+GLuint sphereIndex;
+GLuint sphereTex;
+
 glm::mat4 shadowMatrix;
 unsigned int WIDTH = 512;
 unsigned int HEIGHT = 512;
@@ -63,28 +68,10 @@ double getSeconds() {
 	return (double)val.QuadPart / (double)freq.QuadPart;
 }
 
-void genSkybox() {
-
-	int numVert = 8 * 3;
-	int numNorm = 8 * 3;
-	int numIndices = 36;
-	glGenVertexArrays(1, &skyboxVAO);
-	glBindVertexArray(skyboxVAO);
-
-	glGenBuffers(1, &skyVbuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, skyVbuffer);
-	glBufferData(GL_ARRAY_BUFFER, (numVert + numNorm) * sizeof(GLfloat), NULL, GL_STATIC_DRAW);
-
-	glBufferSubData(GL_ARRAY_BUFFER, 0, numVert * sizeof(GLfloat), getCubeVert()); // Verticies
-
-	glBufferSubData(GL_ARRAY_BUFFER, numVert * sizeof(GLfloat), numNorm * sizeof(GLfloat), getCubeNorm());
-
-
-	glGenBuffers(1, &skyIndex);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, skyIndex);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(GLuint), getCubeIndicies(), GL_STATIC_DRAW);
+void genSphere() {
+	Mesh mesh = loadFile(program, "sphere");
+	
 }
-
 
 void renderSky() {
 
@@ -131,9 +118,9 @@ void init() {
 	skyboxProgam = buildProgram(vs, fs, 0);
 
 	
-	genSkybox();
+	//genSkybox();
 	Mesh mesh = loadFile(program, "sphere");
-	
+	//Mesh skyMesh = loadCubeFile(program, "cube");
 	
 	
 	struct Cube* textureCube = loadCube("./vancouverThing");
@@ -165,6 +152,7 @@ void init() {
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	
 	meshes.push_back(mesh);
+	//meshes.push_back(skyMesh);
 
 	
 }
@@ -202,7 +190,7 @@ void render(Mesh mesh, bool isSphere) {
 
 
 	glm::mat4 transMat = glm::mat4(1.0f);
-	transMat = glm::scale(transMat, glm::vec3(1, 1, 1));
+	transMat = glm::scale(transMat, glm::vec3(3, 3, 3));
 
 	glUseProgram(program);
 	loadUniformMat4(program, "view", view);
@@ -231,13 +219,10 @@ void display(void) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
 	bool isSphere = true;
-	for (Mesh mesh : meshes) {
 		
-		render(mesh, isSphere);
-		isSphere = !isSphere;
-	}
+	render(meshes[0], isSphere);
 	
-	renderSky();
+	//renderSky();
 	glFinish();
 
 }

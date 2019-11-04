@@ -73,7 +73,7 @@ void Mesh::sendToGPU(GLuint program){
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(GLuint), indices, GL_STATIC_DRAW);
 
-	std::cout << &this->vertices << std::endl;
+	std::cout << &this->objVAO << std::endl;
 }
 
 void Mesh::setTBuffer(GLuint tBuffer){
