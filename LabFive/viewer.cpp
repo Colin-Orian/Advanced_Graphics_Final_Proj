@@ -100,7 +100,7 @@ void renderSky() {
 		glm::vec3(0.0f, 0.0f, 1.0f));
 
 	glm::mat4 transMat = glm::mat4(1.0f);
-	transMat = glm::scale(transMat, glm::vec3(10, 10, 10));
+	transMat = glm::scale(transMat, glm::vec3(5, 5, 5));
 	glUseProgram(skyboxProgam);
 	loadUniformMat4(skyboxProgam, "transMat", transMat);
 	loadUniformMat4(skyboxProgam, "view", view);
@@ -130,9 +130,10 @@ void init() {
 	fs = buildShader(GL_FRAGMENT_SHADER, (char*)"SkyboxFrag.hlsl");
 	skyboxProgam = buildProgram(vs, fs, 0);
 
-
+	
+	genSkybox();
 	Mesh mesh = loadFile(program, "sphere");
-
+	
 	
 	
 	struct Cube* textureCube = loadCube("./vancouverThing");
@@ -165,7 +166,7 @@ void init() {
 	
 	meshes.push_back(mesh);
 
-//	genSkybox();
+	
 }
 
 void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
@@ -195,13 +196,13 @@ void render(Mesh mesh, bool isSphere) {
 	//isSphere = true;
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, skyTex);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, mesh.getTBuffer());
 	
 	glBindVertexArray(mesh.objVAO);
 
 
 	glm::mat4 transMat = glm::mat4(1.0f);
-	//transMat = glm::scale(transMat, glm::vec3(3, 3, 3));
+	transMat = glm::scale(transMat, glm::vec3(1, 1, 1));
 
 	glUseProgram(program);
 	loadUniformMat4(program, "view", view);
@@ -236,7 +237,7 @@ void display(void) {
 		isSphere = !isSphere;
 	}
 	
-	//renderSky();
+	renderSky();
 	glFinish();
 
 }
