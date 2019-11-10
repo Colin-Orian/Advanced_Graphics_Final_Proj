@@ -1,6 +1,8 @@
 #include "Mesh.h"
 
 #include <iostream>
+
+//Load in an obj file and create send the data to the GPU
 Mesh::Mesh(std::string fileName) {
 	std::vector<tinyobj::shape_t> shapes;
 	std::vector<tinyobj::material_t> materials;
@@ -97,6 +99,7 @@ Mesh::Mesh(std::string fileName) {
 }
 
 
+//Bind the buffers and get the attribute locations
 void Mesh::loadAttrib(GLuint program) {
 	
 
@@ -119,11 +122,10 @@ void Mesh::loadAttrib(GLuint program) {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuffer);
 }
 
+//Load the data into the GPU
 void Mesh::sendToGPU(){
-	std::cout << &vertices << std::endl;
 	glGenVertexArrays(1, &objVAO);
 	glBindVertexArray(objVAO);
-	
 	
 	glGenBuffers(1, &vbuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vbuffer);
@@ -136,41 +138,11 @@ void Mesh::sendToGPU(){
 	glGenBuffers(1, &tBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, tBuffer);
 	glBufferData(GL_ARRAY_BUFFER, numTex * sizeof(GLfloat), textures, GL_STATIC_DRAW);
-	//glGenBuffers(1, &nbuffer);
-	//std::cout << "N Buffer " << nbuffer << std::endl;
-	//glBindBuffer(GL_ARRAY_BUFFER, nbuffer);
-	//glBufferData(GL_ARRAY_BUFFER, numNorm * sizeof(GLfloat), normals, GL_STATIC_DRAW);
-	/*
-	glGenBuffers(1, &vbuffer);
-	std::cout << vbuffer << std::endl;
-	glBindBuffer(GL_ARRAY_BUFFER, vbuffer);
-	glBufferData(GL_ARRAY_BUFFER, (numVert + numNorm + numTex) * sizeof(GLfloat), NULL, GL_STATIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, numVert * sizeof(GLfloat), vertices); // Verticies
-
-	glBufferSubData(GL_ARRAY_BUFFER, numVert * sizeof(GLfloat), numNorm * sizeof(GLfloat), normals);
-
-	glBufferSubData(GL_ARRAY_BUFFER, (numVert + numNorm) * sizeof(GLfloat), numTex * sizeof(GLfloat), textures);*/
 
 	glGenBuffers(1, &ibuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(GLuint), indices, GL_STATIC_DRAW);
 
-}
-
-void Mesh::setTBuffer(GLuint tBuffer){
-	this->tBuffer = tBuffer;
-}
-
-GLuint* Mesh::getTBufferPointer(){
-	return &tBuffer;
-}
-GLuint Mesh::getTBuffer() {
-	return tBuffer;
-}
-
-GLuint Mesh::getiBuffer()
-{
-	return ibuffer;
 }
 
 int Mesh::getTriangles() {

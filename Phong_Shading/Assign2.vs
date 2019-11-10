@@ -25,5 +25,6 @@ void main() {
 	gl_Position = projection * view * transMat * vPosition;
 	vec3 sphereNormal = (view * vec4(vPosition.xyz,1.0)).xyz;
 	normal = vPosition.xyz;
+	normal = vNormal;
 
 }

@@ -35,9 +35,6 @@ public:
 	Mesh(std::string fileName);
 	void loadAttrib(GLuint program);
 	void sendToGPU();
-	void setTBuffer(GLuint tBuffer);
-	GLuint* getTBufferPointer();
-	GLuint getTBuffer();
-	GLuint getiBuffer();
+
 	int getTriangles();
 };

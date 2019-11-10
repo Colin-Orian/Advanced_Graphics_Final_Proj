@@ -1,11 +1,5 @@
 /************************************************************
-*                   CSCI 4110 Lab 2
-*
-*  Basic OpenGL program that shows how to set up a
-*  VAO and some basic shaders.  This program draws
-*  a cube or sphere depending upon whether CUBE or
-*  SPHERE is defined.
-*
+A Base for all by OpenGL projects.
 **********************************************************/
 #define GLM_FORCE_RADIANS
 #define _CRT_SECURE_NO_WARNINGS
@@ -46,7 +40,6 @@ GLuint shadowProgram;
 glm::mat4 projection;	// projection matrix
 
 std::vector<Mesh> meshes;
-int isQuad;
 
 
 glm::mat4 shadowMatrix;
@@ -75,10 +68,11 @@ void init() {
 	program = buildProgram(vs, fs, 0);
 	dumpProgram(program, (char*)"Lab 2 shader program");
 
+	//Create the meshes
 	Mesh mesh("sphere");
 	Mesh cube("cube");
 	
-	
+	//Store the meshes to be rendered
 	meshes.push_back(mesh);
 	meshes.push_back(cube);
 }
@@ -137,13 +131,13 @@ void display(void) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
 	bool isSphere = true;
-		
+	
+	//Render each mesh
 	for (Mesh mesh : meshes) {
 		render(mesh, isSphere);
 		isSphere = !isSphere;
 	}
 	
-	//renderSky();
 	glFinish();
 
 }
