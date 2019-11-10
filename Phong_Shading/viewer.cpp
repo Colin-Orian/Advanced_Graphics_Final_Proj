@@ -54,7 +54,7 @@ double getSeconds() {
 
 void init() {
 
-	
+
 	int fs;
 	int vs;
 	glEnable(GL_DEPTH_TEST);
@@ -71,7 +71,7 @@ void init() {
 	//Create the meshes
 	Mesh mesh("sphere");
 	Mesh cube("cube");
-	
+
 	//Store the meshes to be rendered
 	meshes.push_back(mesh);
 	meshes.push_back(cube);
@@ -121,7 +121,7 @@ void render(Mesh mesh, bool isSphere) {
 	loadUniform3f(program, "light", lightx, lighty, lightz);
 
 	mesh.loadAttrib(program);
-	
+
 	double t1 = getSeconds();
 	glDrawElements(GL_TRIANGLES, 3 * mesh.getTriangles(), GL_UNSIGNED_INT, NULL);
 
@@ -129,15 +129,15 @@ void render(Mesh mesh, bool isSphere) {
 void display(void) {
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
+
 	bool isSphere = true;
-	
+
 	//Render each mesh
 	for (Mesh mesh : meshes) {
 		render(mesh, isSphere);
 		isSphere = !isSphere;
 	}
-	
+
 	glFinish();
 
 }
@@ -155,7 +155,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		theta += 0.1;
 	if (key == GLFW_KEY_S && action == GLFW_PRESS)
 		theta -= 0.1;
-	
+
 	eyex = (float)(r*sin(theta)*cos(phi));
 	eyey = (float)(r*sin(theta)*sin(phi));
 	eyez = (float)(r*cos(theta));
