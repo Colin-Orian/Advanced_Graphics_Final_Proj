@@ -75,10 +75,12 @@ void init() {
 	program = buildProgram(vs, fs, 0);
 	dumpProgram(program, (char*)"Lab 2 shader program");
 
-	Mesh mesh = loadFile(program, "sphere");
+	Mesh mesh("sphere");
+	Mesh cube("cube");
 	
 	
 	meshes.push_back(mesh);
+	meshes.push_back(cube);
 }
 
 void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
@@ -109,11 +111,13 @@ void render(Mesh mesh, bool isSphere) {
 		glm::vec3(0.0f, 0.0f, 1.0f));
 
 	//isSphere = true;
-	glBindVertexArray(mesh.objVAO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.objVAO);
 
 
 	glm::mat4 transMat = glm::mat4(1.0f);
-	//transMat = glm::scale(transMat, glm::vec3(1, 3, 3));
+	if (isSphere) {
+		transMat = glm::translate(transMat, glm::vec3(4.0f, 0.0f, 0.0f));
+	}
 
 	glUseProgram(program);
 	loadUniformMat4(program, "view", view);
@@ -124,7 +128,6 @@ void render(Mesh mesh, bool isSphere) {
 
 	mesh.loadAttrib(program);
 	
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.getiBuffer());
 	double t1 = getSeconds();
 	glDrawElements(GL_TRIANGLES, 3 * mesh.getTriangles(), GL_UNSIGNED_INT, NULL);
 
@@ -135,7 +138,10 @@ void display(void) {
 	
 	bool isSphere = true;
 		
-	render(meshes[0], isSphere);
+	for (Mesh mesh : meshes) {
+		render(mesh, isSphere);
+		isSphere = !isSphere;
+	}
 	
 	//renderSky();
 	glFinish();

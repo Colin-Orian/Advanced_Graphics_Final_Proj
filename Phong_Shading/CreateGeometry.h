@@ -1,9 +1,8 @@
 #pragma once
 #define _CRT_SECURE_NO_WARNINGS
 #define _USE_MATH_DEFINES
-#include "Mesh.h"
 #include <string>
-
+#include <GLFW/glfw3.h>
 #include <vector>
 #include "tiny_obj_loader.h"
 #include <glm/glm.hpp>
@@ -13,20 +12,12 @@
 #include <iostream>
 
 struct VertexData {
-	std::vector<GLfloat> vertex;
-	std::vector<GLfloat> normals;
-	std::vector<GLuint> indicies;
+	GLfloat *vert;
+	GLfloat *norm;
+	GLfloat *indicies;
+	
 };
 
-Mesh loadFile(GLuint program, std::string fileName);
 
+void loadFile(std::string fileName, GLfloat *vertices, GLfloat *normals, GLuint *indices);
 
-GLfloat * getCubeVert();
-
-GLfloat * getCubeNorm();
-
-GLuint * getCubeIndicies();
-
-Mesh loadCubeFile(GLuint program, std::string fileName);
-
-Mesh createCube(GLuint program);

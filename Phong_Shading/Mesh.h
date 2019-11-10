@@ -1,11 +1,15 @@
 #pragma once
+#define _CRT_SECURE_NO_WARNINGS
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+
+#include "CreateGeometry.h";
 class Mesh {
 private:
 	GLfloat *vertices;
 	GLfloat *normals;
 	GLfloat * textures;
+
 	GLuint *indices;
 	GLfloat *combined;
 
@@ -14,6 +18,7 @@ private:
 	
 	GLint vNormal;
 	GLint vTex;
+	GLuint nbuffer;
 	GLuint ibuffer;			// index buffer identifier
 	GLuint tBuffer;
 
@@ -27,10 +32,9 @@ public:
 	GLuint objVAO;
 	GLint vPosition;
 public:
-	Mesh();
-	Mesh(GLfloat * vertices, GLfloat * normals, GLfloat * tex, GLuint * indices, int numVert, int numNorms, int numIndices, int numTex);
+	Mesh(std::string fileName);
 	void loadAttrib(GLuint program);
-	void sendToGPU(GLuint program);
+	void sendToGPU();
 	void setTBuffer(GLuint tBuffer);
 	GLuint* getTBufferPointer();
 	GLuint getTBuffer();
