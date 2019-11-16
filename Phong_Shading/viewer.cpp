@@ -35,14 +35,16 @@ double theta, phi;		// user's position  on a sphere centered on the object
 double r;				// radius of the sphere
 
 GLuint program;
-GLuint skyboxProgam;
-GLuint shadowProgram;
+GLuint postProssProg;
+GLuint hdrBuff;
+GLuint hdrDepth;
+GLuint hdrColor;
 glm::mat4 projection;	// projection matrix
 
+
 std::vector<Mesh> meshes;
+Mesh planeMesh;
 
-
-glm::mat4 shadowMatrix;
 unsigned int WIDTH = 512;
 unsigned int HEIGHT = 512;
 double getSeconds() {
@@ -53,7 +55,7 @@ double getSeconds() {
 }
 
 void init() {
-
+	
 
 	int fs;
 	int vs;
@@ -68,13 +70,43 @@ void init() {
 	program = buildProgram(vs, fs, 0);
 	dumpProgram(program, (char*)"Lab 2 shader program");
 
+	std::cout << std::endl;
+	vs = buildShader(GL_VERTEX_SHADER, (char*)"outVert.hlsl");
+	fs = buildShader(GL_FRAGMENT_SHADER, (char*)"outFrag.hlsl");
+	postProssProg = buildProgram(vs, fs, 0);
+	dumpProgram(postProssProg, (char*)"Post Process Program");
+
+	glGenFramebuffers(1, &hdrBuff);
+	glBindFramebuffer(GL_FRAMEBUFFER, hdrBuff);
+	glGenTextures(1, &hdrDepth);
+	glBindTexture(GL_TEXTURE_2D, hdrDepth);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32, WIDTH, HEIGHT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE,
+		GL_COMPARE_REF_TO_TEXTURE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, hdrDepth, 0);
+	glGenTextures(1, &hdrColor);
+	glBindTexture(GL_TEXTURE_2D, hdrColor);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, WIDTH, HEIGHT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, hdrColor, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+
+
 	//Create the meshes
 	Mesh mesh("sphere");
+	planeMesh = Mesh(WIDTH, HEIGHT);
 	Mesh cube("cube");
 
 	//Store the meshes to be rendered
 	meshes.push_back(mesh);
 	meshes.push_back(cube);
+
+	
 }
 
 void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
@@ -104,7 +136,6 @@ void render(Mesh mesh, bool isSphere) {
 		glm::vec3(0.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f));
 
-	//isSphere = true;
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.objVAO);
 
 
@@ -113,7 +144,7 @@ void render(Mesh mesh, bool isSphere) {
 		transMat = glm::translate(transMat, glm::vec3(4.0f, 0.0f, 0.0f));
 	}
 
-	glUseProgram(program);
+	
 	loadUniformMat4(program, "view", view);
 	loadUniformMat4(program, "transMat", transMat);
 	loadUniformMat4(program, "projection", projection);
@@ -127,9 +158,16 @@ void render(Mesh mesh, bool isSphere) {
 
 }
 void display(void) {
-
+	glBindFramebuffer(GL_FRAMEBUFFER, hdrBuff);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+	glUseProgram(program);
+	GLenum buff[] = { GL_COLOR_ATTACHMENT0 };
+	glViewport(0, 0, WIDTH, HEIGHT);
+	glDrawBuffers(1, buff);
+	GLuint status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+	if (status != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << status << std::endl;
+	}
 	bool isSphere = true;
 
 	//Render each mesh
@@ -137,6 +175,19 @@ void display(void) {
 		render(mesh, isSphere);
 		isSphere = !isSphere;
 	}
+
+	
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glUseProgram(postProssProg);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, hdrColor);
+	glViewport(0, 0, WIDTH, HEIGHT);
+	
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, planeMesh.objVAO);
+	//meshes[0].loadAttrib(postProssProg);
+	planeMesh.loadPlane(postProssProg);
+	glDrawElements(GL_TRIANGLES, 3 * planeMesh.getTriangles(), GL_UNSIGNED_INT, NULL);
 
 	glFinish();
 
@@ -228,7 +279,7 @@ int main(int argc, char **argv) {
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
-
+	glDeleteFramebuffers(1, &hdrBuff);
 	glfwTerminate();
 
 }

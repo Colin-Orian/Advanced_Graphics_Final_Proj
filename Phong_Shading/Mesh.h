@@ -32,7 +32,10 @@ public:
 	GLuint objVAO;
 	GLint vPosition;
 public:
+	Mesh();
+	Mesh(int WIDTH, int HEIGHT);
 	Mesh(std::string fileName);
+	void loadPlane(GLuint program);
 	void loadAttrib(GLuint program);
 	void sendToGPU();
 

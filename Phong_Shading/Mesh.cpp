@@ -2,6 +2,70 @@
 
 #include <iostream>
 
+Mesh::Mesh() {
+
+}
+Mesh::Mesh(int WIDTH, int HEIGHT){
+	//positions and tex coords taken from https://learnopengl.com/code_viewer.php?code=advanced/framebuffers_quad_vertices
+
+	float quadVertices[] = {
+		// positions 
+		-1.0f,  1.0f,
+		-1.0f, -1.0f,
+		1.0f, -1.0f,
+
+		-1.0f,  1.0f,
+		1.0f, -1.0f,
+		1.0f,  1.0f
+	};
+	// texCoords
+	float quadTex[] = {
+		0.0f, 1.0f,
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+
+		0.0f, 1.0f,
+		1.0f, 0.0f,
+		1.0f, 1.0f
+	};
+	numVert = 12;
+	numTex = 12;
+	vertices = new GLfloat[12];
+	textures = new GLfloat[12];
+	for (int i = 0; i < 12; i++) {
+		vertices[i] = quadVertices[i];
+		textures[i] = quadTex[i];
+	}
+
+	numIndices = 6;
+	float quadIndex[] = {
+		0, 1, 2, //bot left triangle
+		3, 4, 5
+	};
+	indices = new GLuint[numIndices];
+	for (int i = 0; i < numIndices; i++) {
+		indices[i] = quadIndex[i];
+	}
+
+	glGenVertexArrays(1, &objVAO);
+	glBindVertexArray(objVAO);
+
+	glGenBuffers(1, &vbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, vbuffer);
+	glBufferData(GL_ARRAY_BUFFER, numVert * sizeof(GLfloat), vertices, GL_STATIC_DRAW);
+
+
+	glGenBuffers(1, &tBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, tBuffer);
+	glBufferData(GL_ARRAY_BUFFER, numTex * sizeof(GLfloat), textures, GL_STATIC_DRAW);
+
+	glGenBuffers(1, &ibuffer);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuffer);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(GLuint), indices, GL_STATIC_DRAW);
+
+
+	triangles = 2;
+}
 //Load in an obj file and create send the data to the GPU
 Mesh::Mesh(std::string fileName) {
 	std::vector<tinyobj::shape_t> shapes;
@@ -98,6 +162,21 @@ Mesh::Mesh(std::string fileName) {
 	sendToGPU();
 }
 
+void Mesh::loadPlane(GLuint program) {
+	glBindBuffer(GL_ARRAY_BUFFER, vbuffer);
+
+	vPosition = glGetAttribLocation(program, "vPosition");
+	glVertexAttribPointer(vPosition, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(vPosition);
+
+
+	glBindBuffer(GL_ARRAY_BUFFER, tBuffer);
+	vTex = glGetAttribLocation(program, "vTex");
+	glVertexAttribPointer(vTex, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(vTex);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuffer);
+}
 
 //Bind the buffers and get the attribute locations
 void Mesh::loadAttrib(GLuint program) {
