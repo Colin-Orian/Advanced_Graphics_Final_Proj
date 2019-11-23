@@ -174,3 +174,8 @@ void loadUniform1f(GLuint program, std::string varName, float var) {
 	int varLoc = glGetUniformLocation(program, varName.c_str());
 	glUniform1f(varLoc, var);
 }
+
+void loadUniform4f(GLuint program, std::string varName, float x, float y, float z, float a) {
+	int varLoc = glGetUniformLocation(program, varName.c_str());
+	glUniform4f(varLoc, x, y, z, a);
+}

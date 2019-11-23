@@ -28,6 +28,14 @@ A Base for all by OpenGL projects.
 #include <io.h>
 #include <windows.h>
 #include <vector>
+#include "viewer.h"
+
+
+struct Light {
+	glm::vec3 lightPos;
+	glm::vec4 lightColour;
+	float intensity;
+};
 
 float eyex, eyey, eyez;	// current user position
 float lightx, lighty, lightz;
@@ -41,12 +49,14 @@ GLuint hdrDepth;
 GLuint hdrColor;
 glm::mat4 projection;	// projection matrix
 
-
+std::vector<Light> lights;
+int numLights = 0;
 std::vector<Mesh> meshes;
 Mesh planeMesh;
 
 unsigned int WIDTH = 512;
 unsigned int HEIGHT = 512;
+int HDR_ON = 1;
 double getSeconds() {
 	LARGE_INTEGER freq, val;
 	QueryPerformanceFrequency(&freq);
@@ -100,7 +110,7 @@ void init() {
 	//Create the meshes
 	Mesh mesh("sphere");
 	planeMesh = Mesh(WIDTH, HEIGHT);
-	Mesh cube("cube");
+	Mesh cube("dragon");
 
 	//Store the meshes to be rendered
 	meshes.push_back(mesh);
@@ -143,13 +153,29 @@ void render(Mesh mesh, bool isSphere) {
 	if (isSphere) {
 		transMat = glm::translate(transMat, glm::vec3(4.0f, 0.0f, 0.0f));
 	}
+	else {
+		transMat = glm::scale(transMat, glm::vec3(0.3));
+	}
 
 	
 	loadUniformMat4(program, "view", view);
 	loadUniformMat4(program, "transMat", transMat);
 	loadUniformMat4(program, "projection", projection);
 	loadUniform3f(program, "Eye", eyex, eyey, eyez);
-	loadUniform3f(program, "light", lightx, lighty, lightz);
+	loadUniform1i(program, "numLights", 1);
+	for (int i = 0; i < numLights; i++) {
+		std::string varName = "lightPos[" + std::to_string(i) + "]";
+		loadUniform3f(program, varName, lights[i].lightPos.x, lights[i].lightPos.y, lights[i].lightPos.z);
+		varName = "lightColor[" + std::to_string(i) + "]";
+		loadUniform4f(program, varName, lights[i].lightColour.x, lights[i].lightColour.y, lights[i].lightColour.z, lights[i].lightColour.a);
+		varName = "intensity[" + std::to_string(i) + "]";
+		loadUniform1i(program, varName, lights[i].intensity);
+	}
+	//loadUniform3f(program, "lightPos", lights[0].lightPos.x, lights[0].lightPos.y, lights[0].lightPos.z);
+	//loadUniform4f(program, "lightColor", lights[0].lightColour.x, lights[0].lightColour.y, lights[0].lightColour.z, lights[0].lightColour.a);
+
+
+	loadUniform1i(program, "hdr_on", HDR_ON);
 
 	mesh.loadAttrib(program);
 
@@ -158,6 +184,8 @@ void render(Mesh mesh, bool isSphere) {
 
 }
 void display(void) {
+
+	//Load the scene to a frame buffer and render it to a texture.
 	glBindFramebuffer(GL_FRAMEBUFFER, hdrBuff);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(program);
@@ -176,16 +204,17 @@ void display(void) {
 		isSphere = !isSphere;
 	}
 
-	
+	//Bind the default frame buffer and then render to the screen
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	//Bind the scene texture and render the texture to the screne
 	glUseProgram(postProssProg);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, hdrColor);
 	glViewport(0, 0, WIDTH, HEIGHT);
 	
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, planeMesh.objVAO);
-	//meshes[0].loadAttrib(postProssProg);
 	planeMesh.loadPlane(postProssProg);
 	glDrawElements(GL_TRIANGLES, 3 * planeMesh.getTriangles(), GL_UNSIGNED_INT, NULL);
 
@@ -195,6 +224,18 @@ void display(void) {
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
+	if (key == GLFW_KEY_1 && action == GLFW_PRESS) {
+		if (HDR_ON == 1) {
+			printf("HDR_OFF\n");
+			HDR_ON = 0;
+			lights[1].intensity = 0.5f;
+		}
+		else {
+			printf("HDR_ON\n");
+			HDR_ON = 1;
+			lights[1].intensity = 1.5f;
+		}
+	}
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
 
@@ -219,6 +260,8 @@ void error_callback(int error, const char* description)
 }
 
 int main(int argc, char **argv) {
+
+
 
 	GLFWwindow *window;
 
@@ -259,21 +302,32 @@ int main(int argc, char **argv) {
 	}
 
 	init();
-
+	
+	
 	lightx = eyex = -1.0;
 	lightz = eyez = 0.0;
 	lighty = eyey = 10.0;
-
-
+	Light flashLight;
+	flashLight.lightPos = glm::vec3(lightx, lighty, lightz);
+	flashLight.lightColour = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+	flashLight.intensity = 1.0f;
+	lights.push_back(flashLight);
+	numLights++;
+	Light sun;
+	sun.lightPos = glm::vec3(lightx, lighty - 5.0f, lightz - 5.0f);
+	sun.lightColour = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	sun.intensity = 1.5f;
+	lights.push_back(sun);
+	numLights++;
 
 	theta = 1.5;
 	phi = 1.5;
 	r = 10.0;
-
 	glfwSwapInterval(1);
 
 	// GLFW main loop, display model, swapbuffer and check for input
-
+	printf("Press 1 to toggle HDR.\n");
+	printf("HDR_ON\n");
 	while (!glfwWindowShouldClose(window)) {
 		display();
 		glfwSwapBuffers(window);

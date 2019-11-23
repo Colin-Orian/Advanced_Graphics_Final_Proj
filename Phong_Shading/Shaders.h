@@ -21,3 +21,5 @@ void loadUniform1i(GLuint program, std::string varName, int num);
 void loadUniform3f(GLuint program, std::string varName, float x, float y, float z);
 
 void loadUniform1f(GLuint program, std::string varName, float var);
+
+void loadUniform4f(GLuint program, std::string varName, float x, float y, float z, float a);
