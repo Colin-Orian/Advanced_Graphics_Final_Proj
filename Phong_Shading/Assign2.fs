@@ -12,6 +12,8 @@ in vec3 f_position;
 in vec4 sPosition;
 in vec2 texCoords;
 
+layout (location = 0 ) out vec4 norm_color;
+layout (location = 1) out vec4 bright_color;
 //Phong shading
 vec4 calcPhong(vec4 base, vec3 eyeToPos, vec4 curLightColor, vec3 curLightPos){
 
@@ -42,9 +44,14 @@ void main() {
 	for(int i = 0; i < 2; i ++){
 		result += intensity[i] * calcPhong(base, eyeToPos, lightColor[i], lightPos[i]);
 	}
-	gl_FragColor = result;
-	if(gl_FragColor.r <= 1.0f){
-		gl_FragColor = vec4(0.0f);
+	
+	norm_color = result;
+	norm_color.a = 1.0;
+
+	bright_color = vec4(0.0f);
+	if(result.x > 1.0f || result.y > 1.0f || result.z > 1.0f){
+		bright_color = result;
+		
 	}
-	gl_FragColor.a = 1.0;
+	bright_color.a = 1.0f;
 }

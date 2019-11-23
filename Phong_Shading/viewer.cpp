@@ -47,6 +47,7 @@ GLuint postProssProg;
 GLuint hdrBuff;
 GLuint hdrDepth;
 GLuint hdrColor;
+GLuint hdrBright;
 glm::mat4 projection;	// projection matrix
 
 std::vector<Light> lights;
@@ -56,7 +57,9 @@ Mesh planeMesh;
 
 unsigned int WIDTH = 512;
 unsigned int HEIGHT = 512;
+
 int HDR_ON = 1;
+int BLOOM_ON = 1;
 double getSeconds() {
 	LARGE_INTEGER freq, val;
 	QueryPerformanceFrequency(&freq);
@@ -97,6 +100,7 @@ void init() {
 		GL_COMPARE_REF_TO_TEXTURE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, hdrDepth, 0);
+
 	glGenTextures(1, &hdrColor);
 	glBindTexture(GL_TEXTURE_2D, hdrColor);
 	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, WIDTH, HEIGHT);
@@ -105,7 +109,13 @@ void init() {
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, hdrColor, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-
+	glGenTextures(1, &hdrBright);
+	glBindTexture(GL_TEXTURE_2D, hdrBright);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, WIDTH, HEIGHT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, hdrBright, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
 
 	//Create the meshes
 	Mesh mesh("sphere");
@@ -171,8 +181,6 @@ void render(Mesh mesh, bool isSphere) {
 		varName = "intensity[" + std::to_string(i) + "]";
 		loadUniform1i(program, varName, lights[i].intensity);
 	}
-	//loadUniform3f(program, "lightPos", lights[0].lightPos.x, lights[0].lightPos.y, lights[0].lightPos.z);
-	//loadUniform4f(program, "lightColor", lights[0].lightColour.x, lights[0].lightColour.y, lights[0].lightColour.z, lights[0].lightColour.a);
 
 
 	loadUniform1i(program, "hdr_on", HDR_ON);
@@ -189,9 +197,9 @@ void display(void) {
 	glBindFramebuffer(GL_FRAMEBUFFER, hdrBuff);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(program);
-	GLenum buff[] = { GL_COLOR_ATTACHMENT0 };
+	GLenum buff[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 	glViewport(0, 0, WIDTH, HEIGHT);
-	glDrawBuffers(1, buff);
+	glDrawBuffers(2, buff);
 	GLuint status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
 	if (status != GL_FRAMEBUFFER_COMPLETE) {
 		std::cout << status << std::endl;
@@ -212,8 +220,17 @@ void display(void) {
 	glUseProgram(postProssProg);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, hdrColor);
+	loadUniform1i(postProssProg, "tex", 0);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, hdrBright);
+	loadUniform1i(postProssProg, "bloomTex", 1);
+
+
+	loadUniform1i(postProssProg, "hdr_on", HDR_ON);
+	loadUniform1i(postProssProg, "bloom_on", BLOOM_ON);
+
 	glViewport(0, 0, WIDTH, HEIGHT);
-	
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, planeMesh.objVAO);
 	planeMesh.loadPlane(postProssProg);
 	glDrawElements(GL_TRIANGLES, 3 * planeMesh.getTriangles(), GL_UNSIGNED_INT, NULL);
@@ -228,14 +245,28 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		if (HDR_ON == 1) {
 			printf("HDR_OFF\n");
 			HDR_ON = 0;
-			lights[1].intensity = 0.5f;
+			//lights[1].intensity = 0.5f;
 		}
 		else {
 			printf("HDR_ON\n");
 			HDR_ON = 1;
-			lights[1].intensity = 1.5f;
+			//lights[1].intensity = 1.5f;
 		}
 	}
+
+	if (key == GLFW_KEY_2 && action == GLFW_PRESS) {
+		if (BLOOM_ON == 1) {
+			printf("BLOOM_OFF\n");
+			BLOOM_ON = 0;
+			//lights[1].intensity = 0.5f;
+		}
+		else {
+			printf("BLOOM_ON\n");
+			BLOOM_ON = 1;
+			//lights[1].intensity = 1.5f;
+		}
+	}
+
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
 
@@ -326,8 +357,9 @@ int main(int argc, char **argv) {
 	glfwSwapInterval(1);
 
 	// GLFW main loop, display model, swapbuffer and check for input
-	printf("Press 1 to toggle HDR.\n");
-	printf("HDR_ON\n");
+	printf("Press 1 to toggle HDR. HDR is currently ON\n");
+	
+	printf("Press 2 to toggle Bloom. Bloom is currently ON\n");
 	while (!glfwWindowShouldClose(window)) {
 		display();
 		glfwSwapBuffers(window);

@@ -38,6 +38,7 @@
     <ClInclude Include="Shaders.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="tiny_obj_loader.h" />
+    <ClInclude Include="viewer.h" />
   </ItemGroup>
   <ItemGroup>
     <Object Include="Cube.obj">
