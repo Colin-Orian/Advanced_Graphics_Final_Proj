@@ -21,6 +21,7 @@ A Base for all by OpenGL projects.
 #include "tiny_obj_loader.h"
 #include "CreateGeometry.h"
 #include "Texture.h"
+#include "Model.h"
 
 #include <fcntl.h>
 #include <sys/types.h>
@@ -28,7 +29,6 @@ A Base for all by OpenGL projects.
 #include <io.h>
 #include <windows.h>
 #include <vector>
-#include "viewer.h"
 
 
 struct Light {
@@ -53,6 +53,7 @@ glm::mat4 projection;	// projection matrix
 std::vector<Light> lights;
 int numLights = 0;
 std::vector<Mesh> meshes;
+std::vector<Model> models;
 Mesh planeMesh;
 
 unsigned int WIDTH = 512;
@@ -73,7 +74,7 @@ void init() {
 	int fs;
 	int vs;
 	glEnable(GL_DEPTH_TEST);
-	glClearColor(0.0, 1.0, 1.0, 1.0);
+	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glViewport(0, 0, WIDTH, HEIGHT);
 
 	projection = glm::perspective(0.7f, 1.0f, 1.0f, 100.0f);
@@ -126,7 +127,17 @@ void init() {
 	meshes.push_back(mesh);
 	meshes.push_back(cube);
 
-	
+
+	Model sunModel = Model(mesh);
+	sunModel.setColour(glm::vec3(5.0f, 5.0f, 0.0f));
+	sunModel.translate(glm::vec3(0.0f, 4.0f, 4.0f));
+	sunModel.toggleEmiter();
+
+	Model dragonModel = Model(cube);
+	dragonModel.setColour(glm::vec3(0.0f, 0.0f, 1.0f));
+	dragonModel.scale(glm::vec3(0.25, 0.25, 0.25));
+	models.push_back(sunModel);
+	models.push_back(dragonModel);
 }
 
 void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
@@ -147,7 +158,7 @@ void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
 
 }
 
-void render(Mesh mesh, bool isSphere) {
+void render(Model model, int numTri) {
 
 	float radius = 0.2;
 	float step = 1.5;
@@ -156,23 +167,15 @@ void render(Mesh mesh, bool isSphere) {
 		glm::vec3(0.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f));
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.objVAO);
-
-
-	glm::mat4 transMat = glm::mat4(1.0f);
-	if (isSphere) {
-		transMat = glm::translate(transMat, glm::vec3(4.0f, 0.0f, 0.0f));
-	}
-	else {
-		transMat = glm::scale(transMat, glm::vec3(0.3));
-	}
 
 	
 	loadUniformMat4(program, "view", view);
-	loadUniformMat4(program, "transMat", transMat);
+	loadUniformMat4(program, "transMat", model.getTrans());
 	loadUniformMat4(program, "projection", projection);
 	loadUniform3f(program, "Eye", eyex, eyey, eyez);
 	loadUniform1i(program, "numLights", 1);
+	loadUniform1i(program, "isEmiter", model.isEmiter()); 
+	loadUniform4f(program, "base", model.getColour().x, model.getColour().y, model.getColour().z, 1.0f);
 	for (int i = 0; i < numLights; i++) {
 		std::string varName = "lightPos[" + std::to_string(i) + "]";
 		loadUniform3f(program, varName, lights[i].lightPos.x, lights[i].lightPos.y, lights[i].lightPos.z);
@@ -185,14 +188,14 @@ void render(Mesh mesh, bool isSphere) {
 
 	loadUniform1i(program, "hdr_on", HDR_ON);
 
-	mesh.loadAttrib(program);
+	
 
 	double t1 = getSeconds();
-	glDrawElements(GL_TRIANGLES, 3 * mesh.getTriangles(), GL_UNSIGNED_INT, NULL);
+	glDrawElements(GL_TRIANGLES, 3 * numTri, GL_UNSIGNED_INT, NULL);
 
 }
 void display(void) {
-
+	glEnable(GL_DEPTH);
 	//Load the scene to a frame buffer and render it to a texture.
 	glBindFramebuffer(GL_FRAMEBUFFER, hdrBuff);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -206,12 +209,17 @@ void display(void) {
 	}
 	bool isSphere = true;
 
-	//Render each mesh
-	for (Mesh mesh : meshes) {
-		render(mesh, isSphere);
-		isSphere = !isSphere;
-	}
+	//render the spheres
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[0].objVAO);
+	meshes[0].loadAttrib(program);
+	render(models[0], meshes[0].getTriangles());
 
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[1].objVAO);
+	meshes[1].loadAttrib(program);
+	render(models[1], meshes[1].getTriangles());
+
+	glDisable(GL_BLEND);
+	glDisable(GL_DEPTH); //depth buffer isn't needed for second render
 	//Bind the default frame buffer and then render to the screen
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -338,15 +346,9 @@ int main(int argc, char **argv) {
 	lightx = eyex = -1.0;
 	lightz = eyez = 0.0;
 	lighty = eyey = 10.0;
-	Light flashLight;
-	flashLight.lightPos = glm::vec3(lightx, lighty, lightz);
-	flashLight.lightColour = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
-	flashLight.intensity = 1.0f;
-	lights.push_back(flashLight);
-	numLights++;
 	Light sun;
-	sun.lightPos = glm::vec3(lightx, lighty - 5.0f, lightz - 5.0f);
-	sun.lightColour = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	sun.lightPos = models[0].getPos();
+	sun.lightColour = glm::vec4(models[0].getColour(), 1.0f);
 	sun.intensity = 1.5f;
 	lights.push_back(sun);
 	numLights++;

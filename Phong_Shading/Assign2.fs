@@ -3,10 +3,12 @@
  */
 
 #version 330 core
-uniform vec3 lightPos[2];
-uniform vec4 lightColor[2];
-uniform int intensity[2];
+uniform vec3 lightPos[1];
+uniform vec4 lightColor[1];
+uniform int intensity[1];
+uniform int isEmiter;
 uniform vec3 Eye;
+uniform vec4 base;
 in vec3 normal;
 in vec3 f_position;
 in vec4 sPosition;
@@ -15,7 +17,7 @@ in vec2 texCoords;
 layout (location = 0 ) out vec4 norm_color;
 layout (location = 1) out vec4 bright_color;
 //Phong shading
-vec4 calcPhong(vec4 base, vec3 eyeToPos, vec4 curLightColor, vec3 curLightPos){
+vec4 calcPhong(vec3 eyeToPos, vec4 curLightColor, vec3 curLightPos){
 
 	vec3 L = normalize(curLightPos - f_position);
 	vec3 R = normalize(reflect(-L,normal));
@@ -37,12 +39,11 @@ vec4 calcPhong(vec4 base, vec3 eyeToPos, vec4 curLightColor, vec3 curLightPos){
 }
 
 void main() {
-	vec4 base = vec4(0.5, 0.0, 0.0, 1.0);
 	vec4 white = vec4(1.0, 1.0, 1.0, 1.0);
 	vec3 eyeToPos = normalize(Eye - f_position);
 	vec4 result = vec4(0);
-	for(int i = 0; i < 2; i ++){
-		result += intensity[i] * calcPhong(base, eyeToPos, lightColor[i], lightPos[i]);
+	for(int i = 0; i < 1; i ++){
+		result += intensity[i] * calcPhong(eyeToPos, lightColor[i], lightPos[i]);
 	}
 	
 	norm_color = result;
