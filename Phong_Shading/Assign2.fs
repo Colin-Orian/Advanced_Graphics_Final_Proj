@@ -16,6 +16,7 @@ in vec2 texCoords;
 
 layout (location = 0 ) out vec4 norm_color;
 layout (location = 1) out vec4 bright_color;
+layout (location = 2) out vec4 shaft_color;
 //Phong shading
 vec4 calcPhong(vec3 eyeToPos, vec4 curLightColor, vec3 curLightPos){
 
@@ -50,9 +51,12 @@ void main() {
 	norm_color.a = 1.0;
 
 	bright_color = vec4(0.0f);
-	if(result.x > 1.0f || result.y > 1.0f || result.z > 1.0f){
+	if(result.x > 1.3f || result.y > 1.3f || result.z > 1.3f){
 		bright_color = result;
 		
 	}
 	bright_color.a = 1.0f;
+
+	shaft_color = isEmiter * lightColor[0] + (1- isEmiter) * vec4(0.0f);
+	shaft_color.a = 1.0f;
 }

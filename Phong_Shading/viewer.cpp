@@ -44,10 +44,17 @@ double r;				// radius of the sphere
 
 GLuint program;
 GLuint postProssProg;
+GLuint skyProg;
+
 GLuint hdrBuff;
+
 GLuint hdrDepth;
 GLuint hdrColor;
 GLuint hdrBright;
+GLuint sunShaft;
+
+GLuint skyTex;
+
 glm::mat4 projection;	// projection matrix
 
 std::vector<Light> lights;
@@ -82,13 +89,21 @@ void init() {
 	vs = buildShader(GL_VERTEX_SHADER, (char*)"Assign2.vs");
 	fs = buildShader(GL_FRAGMENT_SHADER, (char*)"Assign2.fs");
 	program = buildProgram(vs, fs, 0);
-	dumpProgram(program, (char*)"Lab 2 shader program");
+	dumpProgram(program, (char*)"HDR Shader");
 
 	std::cout << std::endl;
 	vs = buildShader(GL_VERTEX_SHADER, (char*)"outVert.hlsl");
 	fs = buildShader(GL_FRAGMENT_SHADER, (char*)"outFrag.hlsl");
 	postProssProg = buildProgram(vs, fs, 0);
 	dumpProgram(postProssProg, (char*)"Post Process Program");
+
+
+	std::cout << std::endl;
+	vs = buildShader(GL_VERTEX_SHADER, (char*)"skyVert.hlsl");
+	fs = buildShader(GL_FRAGMENT_SHADER, (char*)"skyFrag.hlsl");
+	skyProg = buildProgram(vs, fs, 0);
+	dumpProgram(postProssProg, (char*)"Sky Shader");
+
 
 	glGenFramebuffers(1, &hdrBuff);
 	glBindFramebuffer(GL_FRAMEBUFFER, hdrBuff);
@@ -118,26 +133,62 @@ void init() {
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, hdrBright, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
+	glGenTextures(1, &sunShaft);
+	glBindTexture(GL_TEXTURE_2D, sunShaft);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, WIDTH, HEIGHT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, sunShaft, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	struct Cube* textureCube = loadCube("./vancouverThing");
+	glGenTextures(1, &skyTex);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skyTex);
+	for (int i = 0; i < 6; i++) {
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, textureCube->width, textureCube->height,
+			0, GL_RGB, GL_UNSIGNED_BYTE, textureCube->data[i]);
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+
+
+
+
 	//Create the meshes
 	Mesh mesh("sphere");
 	planeMesh = Mesh(WIDTH, HEIGHT);
-	Mesh cube("dragon");
-
+	Mesh dragon("dragon");
+	Mesh cube("cube");
 	//Store the meshes to be rendered
 	meshes.push_back(mesh);
+	meshes.push_back(dragon);
 	meshes.push_back(cube);
 
 
 	Model sunModel = Model(mesh);
-	sunModel.setColour(glm::vec3(5.0f, 5.0f, 0.0f));
+	sunModel.setColour(glm::vec3(1.0f, 1.0f, 1.0f));
 	sunModel.translate(glm::vec3(0.0f, 4.0f, 4.0f));
 	sunModel.toggleEmiter();
 
-	Model dragonModel = Model(cube);
+	Model dragonModel = Model(dragon);
 	dragonModel.setColour(glm::vec3(0.0f, 0.0f, 1.0f));
 	dragonModel.scale(glm::vec3(0.25, 0.25, 0.25));
+
+
+
+	Model skyBox = Model(cube);
+	skyBox.setColour(glm::vec3(1.0f, 0.0f, 0.0f));
+	skyBox.scale(glm::vec3(10.0f, 10.0f, 10.0f));
+
 	models.push_back(sunModel);
 	models.push_back(dragonModel);
+	models.push_back(skyBox);
+
 }
 
 void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
@@ -159,9 +210,6 @@ void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
 }
 
 void render(Model model, int numTri) {
-
-	float radius = 0.2;
-	float step = 1.5;
 	glm::mat4 view;
 	view = glm::lookAt(glm::vec3(eyex, eyey, eyez),
 		glm::vec3(0.0f, 0.0f, 0.0f),
@@ -194,29 +242,55 @@ void render(Model model, int numTri) {
 	glDrawElements(GL_TRIANGLES, 3 * numTri, GL_UNSIGNED_INT, NULL);
 
 }
+
+void renderSky() {
+	glm::mat4 view;
+	view = glm::lookAt(glm::vec3(eyex, eyey, eyez),
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(0.0f, 0.0f, 1.0f));
+
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skyTex);
+
+	loadUniformMat4(program, "view", view);
+	loadUniformMat4(program, "transMat", models[2].getTrans());
+	loadUniformMat4(program, "projection", projection);
+
+
+	glDrawElements(GL_TRIANGLES, 3 * meshes[2].getTriangles(), GL_UNSIGNED_INT, NULL);
+}
+
 void display(void) {
 	glEnable(GL_DEPTH);
 	//Load the scene to a frame buffer and render it to a texture.
 	glBindFramebuffer(GL_FRAMEBUFFER, hdrBuff);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(program);
-	GLenum buff[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+	GLenum buff[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
 	glViewport(0, 0, WIDTH, HEIGHT);
-	glDrawBuffers(2, buff);
+	glDrawBuffers(3, buff);
 	GLuint status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
 	if (status != GL_FRAMEBUFFER_COMPLETE) {
 		std::cout << status << std::endl;
 	}
-	bool isSphere = true;
 
 	//render the spheres
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[0].objVAO);
 	meshes[0].loadAttrib(program);
 	render(models[0], meshes[0].getTriangles());
 
+	//Render the Dragon
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[1].objVAO);
 	meshes[1].loadAttrib(program);
 	render(models[1], meshes[1].getTriangles());
+
+	glUseProgram(skyProg);
+	//Render the box
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[2].objVAO);
+	meshes[2].loadAttrib(skyProg);
+	renderSky();
+	
 
 	glDisable(GL_BLEND);
 	glDisable(GL_DEPTH); //depth buffer isn't needed for second render
@@ -234,9 +308,20 @@ void display(void) {
 	glBindTexture(GL_TEXTURE_2D, hdrBright);
 	loadUniform1i(postProssProg, "bloomTex", 1);
 
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, sunShaft);
+	loadUniform1i(postProssProg, "shaftTex", 2);
+
 
 	loadUniform1i(postProssProg, "hdr_on", HDR_ON);
 	loadUniform1i(postProssProg, "bloom_on", BLOOM_ON);
+
+	glm::mat4 view;
+	view = glm::lookAt(glm::vec3(eyex, eyey, eyez),
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(0.0f, 0.0f, 1.0f));
+	glm::vec4 lightPosScreen = (projection * view * glm::vec4(models[0].getPos(), 1.0f)); //Convert the light's position into screen space
+	loadUniform3f(postProssProg, "lightPos", lightPosScreen.x, lightPosScreen.y, lightPosScreen.z);
 
 	glViewport(0, 0, WIDTH, HEIGHT);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, planeMesh.objVAO);
