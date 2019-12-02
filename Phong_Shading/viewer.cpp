@@ -29,12 +29,19 @@ A Base for all by OpenGL projects.
 #include <io.h>
 #include <windows.h>
 #include <vector>
-
+#include <ctime>
+#include <random>
 
 struct Light {
 	glm::vec3 lightPos;
 	glm::vec4 lightColour;
 	float intensity;
+};
+
+struct Particle {
+	glm::mat4 transform;
+	glm::vec3 colour;
+	double timeAlive;
 };
 
 float eyex, eyey, eyez;	// current user position
@@ -44,7 +51,7 @@ double r;				// radius of the sphere
 
 GLuint program;
 GLuint postProssProg;
-GLuint skyProg;
+GLuint partProg;
 
 //Pre process buffer
 GLuint hdrBuff;
@@ -61,6 +68,10 @@ std::vector<Mesh> meshes;
 std::vector<Model> models;
 Mesh planeMesh;
 
+const double TIME_TO_KILL = 0.5; 
+std::vector<Particle> particles;
+double prevSecond;
+
 unsigned int WIDTH = 512;
 unsigned int HEIGHT = 512;
 
@@ -75,7 +86,7 @@ double getSeconds() {
 
 void init() {
 	
-
+	srand(time(0));
 	int fs;
 	int vs;
 	glEnable(GL_DEPTH_TEST);
@@ -97,10 +108,10 @@ void init() {
 
 
 	std::cout << std::endl;
-	vs = buildShader(GL_VERTEX_SHADER, (char*)"skyVert.hlsl");
-	fs = buildShader(GL_FRAGMENT_SHADER, (char*)"skyFrag.hlsl");
-	skyProg = buildProgram(vs, fs, 0);
-	dumpProgram(postProssProg, (char*)"Sky Shader");
+	vs = buildShader(GL_VERTEX_SHADER, (char*)"particleVert.hlsl");
+	fs = buildShader(GL_FRAGMENT_SHADER, (char*)"particleFrag.hlsl");
+	partProg = buildProgram(vs, fs, 0);
+	dumpProgram(partProg, (char*)"Particle");
 
 
 	glGenFramebuffers(1, &hdrBuff);
@@ -139,22 +150,21 @@ void init() {
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, sunShaft, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-
-
-
-
-
-
 	//Create the meshes
-	Mesh mesh("sphere");
+	Mesh sphere("sphere");
 	planeMesh = Mesh(WIDTH, HEIGHT);
 	Mesh dragon("dragon");
 	//Store the meshes to be rendered
-	meshes.push_back(mesh);
+	meshes.push_back(sphere);
 	meshes.push_back(dragon);
 
+	Mesh plane = Mesh("cube"); //Create a plane for particles
 
-	Model sunModel = Model(mesh);
+	meshes.push_back(plane);
+	Model partModel = Model(plane);
+	partModel.setColour(glm::vec3(1.0f, 1.0f, 1.0f));
+
+	Model sunModel = Model(sphere);
 	sunModel.setColour(glm::vec3(1.0f, 1.0f, 1.0f));
 	sunModel.translate(glm::vec3(0.0f, 4.0f, 4.0f));
 	sunModel.toggleEmiter();
@@ -167,6 +177,37 @@ void init() {
 	models.push_back(dragonModel);
 	
 
+}
+
+void update() {
+	//Create particle
+	Particle particle;
+	particle.transform = glm::mat4();
+	particle.transform = glm::scale(particle.transform, glm::vec3(0.15f, 0.15f, 0.15f));
+	
+	float x = rand() % 5;
+	float y = rand() % 5;
+	float z = rand() % 5;
+	particle.transform = glm::translate(particle.transform, glm::vec3(x, y, z));
+
+	particle.colour = glm::vec3(1.0f, 0.0f, 0.0f);
+	particle.timeAlive = 0.0f;
+	double currentTime = getSeconds();
+	double deltaTime = currentTime - prevSecond;
+	prevSecond = currentTime;
+	for (int i = 0; i < particles.size(); i++) {
+		particles[i].timeAlive += deltaTime;
+	}
+	for (int i = 0; i < particles.size(); i++) {
+		if (particles[i].timeAlive >= TIME_TO_KILL) {
+			particles.erase(particles.begin() + i);
+		}
+	}
+
+	for (int i = 0; i < particles.size(); i++) {
+		particles[i].transform = glm::translate(particles[i].transform, glm::vec3(0.25f, 0.0f, 0.0f));
+	}
+	particles.push_back(particle);
 }
 
 void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
@@ -193,8 +234,6 @@ void render(Model model, int numTri) {
 		glm::vec3(0.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f));
 
-
-	
 	loadUniformMat4(program, "view", view);
 	loadUniformMat4(program, "transMat", model.getTrans());
 	loadUniformMat4(program, "projection", projection);
@@ -221,6 +260,24 @@ void render(Model model, int numTri) {
 
 }
 
+void renderParticles() {
+	glUseProgram(partProg);
+	meshes[2].loadAttrib(partProg);
+	glm::mat4 view;
+	view = glm::lookAt(glm::vec3(eyex, eyey, eyez),
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(0.0f, 0.0f, 1.0f));
+	
+	for (int i = 0; i < particles.size(); i++) {
+		loadUniformMat4(program, "view", view);
+		loadUniformMat4(program, "transMat", particles[i].transform);
+		loadUniformMat4(program, "projection", projection);
+		loadUniform3f(partProg, "base", particles[i].colour.x, particles[i].colour.y, particles[i].colour.z);
+		glDrawElements(GL_TRIANGLES, 3 * meshes[2].getTriangles(), GL_UNSIGNED_INT, NULL);
+	}
+	
+}
+
 void display(void) {
 	glEnable(GL_DEPTH);
 	//Load the scene to a frame buffer and render it to a texture.
@@ -245,6 +302,9 @@ void display(void) {
 	meshes[1].loadAttrib(program);
 	render(models[1], meshes[1].getTriangles());
 	
+
+	renderParticles();
+
 
 	glDisable(GL_BLEND);
 	glDisable(GL_DEPTH); //depth buffer isn't needed for second render
@@ -381,7 +441,6 @@ int main(int argc, char **argv) {
 
 	init();
 	
-	
 	lightx = eyex = -1.0;
 	lightz = eyez = 0.0;
 	lighty = eyey = 10.0;
@@ -401,7 +460,9 @@ int main(int argc, char **argv) {
 	printf("Press 1 to toggle HDR. HDR is currently ON\n");
 	
 	printf("Press 2 to toggle Bloom. Bloom is currently ON\n");
+	prevSecond = getSeconds();
 	while (!glfwWindowShouldClose(window)) {
+		update();
 		display();
 		glfwSwapBuffers(window);
 		glfwPollEvents();
