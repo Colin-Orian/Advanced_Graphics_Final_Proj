@@ -74,6 +74,6 @@ void main() {
 
 	gl_FragColor = preBloom;
 	
-	gl_FragColor = texture(shaftTex, fTexCoords);
+	//gl_FragColor = texture(bloomTex, fTexCoords);
 	gl_FragColor.a = 1.0f;
 }

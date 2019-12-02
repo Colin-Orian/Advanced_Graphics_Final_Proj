@@ -55,8 +55,11 @@ void main() {
 		bright_color = result;
 		
 	}
+
+
 	bright_color.a = 1.0f;
 
+	
 	shaft_color = isEmiter * lightColor[0] + (1- isEmiter) * vec4(0.0f);
 	shaft_color.a = 1.0f;
 }

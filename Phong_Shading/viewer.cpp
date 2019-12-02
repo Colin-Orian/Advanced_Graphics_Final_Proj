@@ -46,14 +46,12 @@ GLuint program;
 GLuint postProssProg;
 GLuint skyProg;
 
+//Pre process buffer
 GLuint hdrBuff;
-
-GLuint hdrDepth;
-GLuint hdrColor;
-GLuint hdrBright;
-GLuint sunShaft;
-
-GLuint skyTex;
+GLuint hdrDepth; //depth buffer
+GLuint hdrColor; //Colour texture
+GLuint hdrBright; //Bloom texture
+GLuint sunShaft; //Sun Shaft texture
 
 glm::mat4 projection;	// projection matrix
 
@@ -141,19 +139,7 @@ void init() {
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, sunShaft, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	struct Cube* textureCube = loadCube("./vancouverThing");
-	glGenTextures(1, &skyTex);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, skyTex);
-	for (int i = 0; i < 6; i++) {
-		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, textureCube->width, textureCube->height,
-			0, GL_RGB, GL_UNSIGNED_BYTE, textureCube->data[i]);
-	}
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
 
 
 
@@ -163,11 +149,9 @@ void init() {
 	Mesh mesh("sphere");
 	planeMesh = Mesh(WIDTH, HEIGHT);
 	Mesh dragon("dragon");
-	Mesh cube("cube");
 	//Store the meshes to be rendered
 	meshes.push_back(mesh);
 	meshes.push_back(dragon);
-	meshes.push_back(cube);
 
 
 	Model sunModel = Model(mesh);
@@ -179,15 +163,9 @@ void init() {
 	dragonModel.setColour(glm::vec3(0.0f, 0.0f, 1.0f));
 	dragonModel.scale(glm::vec3(0.25, 0.25, 0.25));
 
-
-
-	Model skyBox = Model(cube);
-	skyBox.setColour(glm::vec3(1.0f, 0.0f, 0.0f));
-	skyBox.scale(glm::vec3(10.0f, 10.0f, 10.0f));
-
 	models.push_back(sunModel);
 	models.push_back(dragonModel);
-	models.push_back(skyBox);
+	
 
 }
 
@@ -243,24 +221,6 @@ void render(Model model, int numTri) {
 
 }
 
-void renderSky() {
-	glm::mat4 view;
-	view = glm::lookAt(glm::vec3(eyex, eyey, eyez),
-		glm::vec3(0.0f, 0.0f, 0.0f),
-		glm::vec3(0.0f, 0.0f, 1.0f));
-
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, skyTex);
-
-	loadUniformMat4(program, "view", view);
-	loadUniformMat4(program, "transMat", models[2].getTrans());
-	loadUniformMat4(program, "projection", projection);
-
-
-	glDrawElements(GL_TRIANGLES, 3 * meshes[2].getTriangles(), GL_UNSIGNED_INT, NULL);
-}
-
 void display(void) {
 	glEnable(GL_DEPTH);
 	//Load the scene to a frame buffer and render it to a texture.
@@ -284,12 +244,6 @@ void display(void) {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[1].objVAO);
 	meshes[1].loadAttrib(program);
 	render(models[1], meshes[1].getTriangles());
-
-	glUseProgram(skyProg);
-	//Render the box
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[2].objVAO);
-	meshes[2].loadAttrib(skyProg);
-	renderSky();
 	
 
 	glDisable(GL_BLEND);
