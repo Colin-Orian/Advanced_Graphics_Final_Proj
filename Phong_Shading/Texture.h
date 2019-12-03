@@ -7,7 +7,8 @@
  *
  *************************************************/
 #pragma once
-
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 struct Texture {
 	int width;
 	int height;
@@ -25,3 +26,5 @@ struct Cube {
 
 struct Texture *loadTexture(const char *filename);
 struct Cube *loadCube(const char *basename); 
+
+void createFramebufferTexture(GLuint *tex, unsigned int WIDTH, unsigned int HEIGHT, GLenum type, GLenum target);

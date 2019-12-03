@@ -49,17 +49,22 @@ float lightx, lighty, lightz;
 double theta, phi;		// user's position  on a sphere centered on the object
 double r;				// radius of the sphere
 
-GLuint program;
+GLuint preProssProg;
 GLuint postProssProg;
 GLuint partProg;
+GLuint shaftProg;
 
 //Pre process buffer
 GLuint hdrBuff;
 GLuint hdrDepth; //depth buffer
 GLuint hdrColor; //Colour texture
 GLuint hdrBright; //Bloom texture
-GLuint sunShaft; //Sun Shaft texture
 
+
+
+GLuint shaftBuff;
+GLuint sunShaft; //Sun Shaft texture
+GLuint shaftDepth;
 glm::mat4 projection;	// projection matrix
 
 std::vector<Light> lights;
@@ -97,8 +102,8 @@ void init() {
 
 	vs = buildShader(GL_VERTEX_SHADER, (char*)"Assign2.vs");
 	fs = buildShader(GL_FRAGMENT_SHADER, (char*)"Assign2.fs");
-	program = buildProgram(vs, fs, 0);
-	dumpProgram(program, (char*)"HDR Shader");
+	preProssProg = buildProgram(vs, fs, 0);
+	dumpProgram(preProssProg, (char*)"HDR Shader");
 
 	std::cout << std::endl;
 	vs = buildShader(GL_VERTEX_SHADER, (char*)"outVert.hlsl");
@@ -113,42 +118,23 @@ void init() {
 	partProg = buildProgram(vs, fs, 0);
 	dumpProgram(partProg, (char*)"Particle");
 
+	std::cout << std::endl;
+	vs = buildShader(GL_VERTEX_SHADER, (char*)"shaftVert.hlsl");
+	fs = buildShader(GL_FRAGMENT_SHADER, (char*)"shaftFrag.hlsl");
+	shaftProg = buildProgram(vs, fs, 0);
+	dumpProgram(shaftProg, (char*)"Shaft Program");
 
 	glGenFramebuffers(1, &hdrBuff);
 	glBindFramebuffer(GL_FRAMEBUFFER, hdrBuff);
-	glGenTextures(1, &hdrDepth);
-	glBindTexture(GL_TEXTURE_2D, hdrDepth);
-	glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32, WIDTH, HEIGHT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE,
-		GL_COMPARE_REF_TO_TEXTURE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, hdrDepth, 0);
+	createFramebufferTexture(&hdrDepth, WIDTH, HEIGHT, GL_DEPTH_COMPONENT32, GL_DEPTH_ATTACHMENT);
+	createFramebufferTexture(&hdrColor, WIDTH, HEIGHT, GL_RGBA32F, GL_COLOR_ATTACHMENT0);
+	createFramebufferTexture(&hdrBright, WIDTH, HEIGHT, GL_RGBA32F, GL_COLOR_ATTACHMENT1);
 
-	glGenTextures(1, &hdrColor);
-	glBindTexture(GL_TEXTURE_2D, hdrColor);
-	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, WIDTH, HEIGHT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, hdrColor, 0);
-	glBindTexture(GL_TEXTURE_2D, 0);
 
-	glGenTextures(1, &hdrBright);
-	glBindTexture(GL_TEXTURE_2D, hdrBright);
-	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, WIDTH, HEIGHT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, hdrBright, 0);
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-	glGenTextures(1, &sunShaft);
-	glBindTexture(GL_TEXTURE_2D, sunShaft);
-	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, WIDTH, HEIGHT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, sunShaft, 0);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	glGenFramebuffers(1, &shaftBuff);
+	glBindFramebuffer(GL_FRAMEBUFFER, shaftBuff);
+	createFramebufferTexture(&sunShaft, WIDTH, HEIGHT, GL_RGBA32F, GL_COLOR_ATTACHMENT0);
+	createFramebufferTexture(&shaftDepth, WIDTH, HEIGHT, GL_DEPTH_COMPONENT32, GL_DEPTH_ATTACHMENT);
 
 	//Create the meshes
 	Mesh sphere("sphere");
@@ -185,9 +171,9 @@ void update() {
 	particle.transform = glm::mat4();
 	particle.transform = glm::scale(particle.transform, glm::vec3(0.15f, 0.15f, 0.15f));
 	
-	float x = rand() % 5;
-	float y = rand() % 5;
-	float z = rand() % 5;
+	float x = rand() % 10;
+	float y = rand() % 10;
+	float z = rand() % 10;
 	particle.transform = glm::translate(particle.transform, glm::vec3(x, y, z));
 
 	particle.colour = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -205,7 +191,7 @@ void update() {
 	}
 
 	for (int i = 0; i < particles.size(); i++) {
-		particles[i].transform = glm::translate(particles[i].transform, glm::vec3(0.25f, 0.0f, 0.0f));
+		particles[i].transform = glm::translate(particles[i].transform, glm::vec3(0.005f, 0.0f, 0.0f));
 	}
 	particles.push_back(particle);
 }
@@ -228,7 +214,7 @@ void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
 
 }
 
-void render(Model model, int numTri) {
+void render(Model model, int numTri, GLuint program) {
 	glm::mat4 view;
 	view = glm::lookAt(glm::vec3(eyex, eyey, eyez),
 		glm::vec3(0.0f, 0.0f, 0.0f),
@@ -269,9 +255,9 @@ void renderParticles() {
 		glm::vec3(0.0f, 0.0f, 1.0f));
 	
 	for (int i = 0; i < particles.size(); i++) {
-		loadUniformMat4(program, "view", view);
-		loadUniformMat4(program, "transMat", particles[i].transform);
-		loadUniformMat4(program, "projection", projection);
+		loadUniformMat4(partProg, "view", view);
+		loadUniformMat4(partProg, "transMat", particles[i].transform);
+		loadUniformMat4(partProg, "projection", projection);
 		loadUniform3f(partProg, "base", particles[i].colour.x, particles[i].colour.y, particles[i].colour.z);
 		glDrawElements(GL_TRIANGLES, 3 * meshes[2].getTriangles(), GL_UNSIGNED_INT, NULL);
 	}
@@ -283,10 +269,10 @@ void display(void) {
 	//Load the scene to a frame buffer and render it to a texture.
 	glBindFramebuffer(GL_FRAMEBUFFER, hdrBuff);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glUseProgram(program);
-	GLenum buff[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+	glUseProgram(preProssProg);
+	GLenum buff[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
 	glViewport(0, 0, WIDTH, HEIGHT);
-	glDrawBuffers(3, buff);
+	glDrawBuffers(2, buff);
 	GLuint status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
 	if (status != GL_FRAMEBUFFER_COMPLETE) {
 		std::cout << status << std::endl;
@@ -294,17 +280,29 @@ void display(void) {
 
 	//render the spheres
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[0].objVAO);
-	meshes[0].loadAttrib(program);
-	render(models[0], meshes[0].getTriangles());
+	meshes[0].loadAttrib(preProssProg);
+	render(models[0], meshes[0].getTriangles(), preProssProg);
 
 	//Render the Dragon
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[1].objVAO);
-	meshes[1].loadAttrib(program);
-	render(models[1], meshes[1].getTriangles());
+	meshes[1].loadAttrib(preProssProg);
+	render(models[1], meshes[1].getTriangles(), preProssProg);
 	
 
 	renderParticles();
 
+	glBindFramebuffer(GL_FRAMEBUFFER, shaftBuff);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glUseProgram(shaftProg);
+	GLenum shaftBuff[] = { GL_COLOR_ATTACHMENT0 };
+	glViewport(0, 0, WIDTH, HEIGHT);
+	glDrawBuffers(2, shaftBuff);
+
+	meshes[0].loadAttrib(shaftProg);
+	render(models[0], meshes[0].getTriangles(), shaftProg);
+
+	meshes[1].loadAttrib(shaftProg);
+	render(models[1], meshes[1].getTriangles(), shaftProg);
 
 	glDisable(GL_BLEND);
 	glDisable(GL_DEPTH); //depth buffer isn't needed for second render

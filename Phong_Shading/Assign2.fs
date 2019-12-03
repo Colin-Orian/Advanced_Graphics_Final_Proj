@@ -6,7 +6,6 @@
 uniform vec3 lightPos[1];
 uniform vec4 lightColor[1];
 uniform int intensity[1];
-uniform int isEmiter;
 uniform vec3 Eye;
 uniform vec4 base;
 in vec3 normal;
@@ -16,7 +15,6 @@ in vec2 texCoords;
 
 layout (location = 0 ) out vec4 norm_color;
 layout (location = 1) out vec4 bright_color;
-layout (location = 2) out vec4 shaft_color;
 //Phong shading
 vec4 calcPhong(vec3 eyeToPos, vec4 curLightColor, vec3 curLightPos){
 
@@ -59,7 +57,4 @@ void main() {
 
 	bright_color.a = 1.0f;
 
-	
-	shaft_color = isEmiter * lightColor[0] + (1- isEmiter) * vec4(0.0f);
-	shaft_color.a = 1.0f;
 }
