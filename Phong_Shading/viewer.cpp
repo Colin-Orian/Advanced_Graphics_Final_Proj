@@ -22,6 +22,7 @@ A Base for all by OpenGL projects.
 #include "CreateGeometry.h"
 #include "Texture.h"
 #include "Model.h"
+#include "ParticleEmitter.h"
 
 #include <fcntl.h>
 #include <sys/types.h>
@@ -38,11 +39,7 @@ struct Light {
 	float intensity;
 };
 
-struct Particle {
-	glm::mat4 transform;
-	glm::vec3 colour;
-	double timeAlive;
-};
+
 
 float eyex, eyey, eyez;	// current user position
 float lightx, lighty, lightz;
@@ -53,6 +50,7 @@ GLuint preProssProg;
 GLuint postProssProg;
 GLuint partProg;
 GLuint shaftProg;
+GLuint skyProg;
 
 //Pre process buffer
 GLuint hdrBuff;
@@ -73,9 +71,9 @@ std::vector<Mesh> meshes;
 std::vector<Model> models;
 Mesh planeMesh;
 
-const double TIME_TO_KILL = 0.5; 
-std::vector<Particle> particles;
 double prevSecond;
+ParticleEmitter emitter(glm::vec3(-9.89f, 10.30f, 0.9732f), glm::vec3(-1.0f, 0.0f, 0.0f));
+
 
 unsigned int WIDTH = 512;
 unsigned int HEIGHT = 512;
@@ -91,7 +89,7 @@ double getSeconds() {
 
 void init() {
 	
-	srand(time(0));
+
 	int fs;
 	int vs;
 	glEnable(GL_DEPTH_TEST);
@@ -123,6 +121,12 @@ void init() {
 	fs = buildShader(GL_FRAGMENT_SHADER, (char*)"shaftFrag.hlsl");
 	shaftProg = buildProgram(vs, fs, 0);
 	dumpProgram(shaftProg, (char*)"Shaft Program");
+
+	std::cout << std::endl;
+	vs = buildShader(GL_VERTEX_SHADER, (char*)"skyVert.hlsl");
+	fs = buildShader(GL_FRAGMENT_SHADER, (char*)"skyFrag.hlsl");
+	skyProg = buildProgram(vs, fs, 0);
+	dumpProgram(shaftProg, (char*)"Sky Program");
 
 	glGenFramebuffers(1, &hdrBuff);
 	glBindFramebuffer(GL_FRAMEBUFFER, hdrBuff);
@@ -166,34 +170,12 @@ void init() {
 }
 
 void update() {
-	//Create particle
-	Particle particle;
-	particle.transform = glm::mat4();
-	particle.transform = glm::scale(particle.transform, glm::vec3(0.15f, 0.15f, 0.15f));
-	
-	float x = rand() % 10;
-	float y = rand() % 10;
-	float z = rand() % 10;
-	particle.transform = glm::translate(particle.transform, glm::vec3(x, y, z));
-
-	particle.colour = glm::vec3(1.0f, 0.0f, 0.0f);
-	particle.timeAlive = 0.0f;
+	emitter.createParticles();
 	double currentTime = getSeconds();
-	double deltaTime = currentTime - prevSecond;
-	prevSecond = currentTime;
-	for (int i = 0; i < particles.size(); i++) {
-		particles[i].timeAlive += deltaTime;
-	}
-	for (int i = 0; i < particles.size(); i++) {
-		if (particles[i].timeAlive >= TIME_TO_KILL) {
-			particles.erase(particles.begin() + i);
-		}
-	}
 
-	for (int i = 0; i < particles.size(); i++) {
-		particles[i].transform = glm::translate(particles[i].transform, glm::vec3(0.005f, 0.0f, 0.0f));
-	}
-	particles.push_back(particle);
+	emitter.deleteParticles(currentTime - prevSecond);
+	prevSecond = getSeconds();
+	emitter.moveParticles();
 }
 
 void framebufferSizeCallback(GLFWwindow *window, int w, int h) {
@@ -253,7 +235,7 @@ void renderParticles() {
 	view = glm::lookAt(glm::vec3(eyex, eyey, eyez),
 		glm::vec3(0.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f));
-	
+	std::vector<Particle> particles = emitter.getParticles();
 	for (int i = 0; i < particles.size(); i++) {
 		loadUniformMat4(partProg, "view", view);
 		loadUniformMat4(partProg, "transMat", particles[i].transform);

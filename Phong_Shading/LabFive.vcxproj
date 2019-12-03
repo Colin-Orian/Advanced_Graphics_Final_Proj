@@ -26,6 +26,7 @@
     <ClCompile Include="CreateGeometry.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Model.cpp" />
+    <ClCompile Include="ParticleEmitter.cpp" />
     <ClCompile Include="Shaders.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="tiny_obj_loader.cc" />
@@ -35,6 +36,7 @@
     <ClInclude Include="CreateGeometry.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Model.h" />
+    <ClInclude Include="ParticleEmitter.h" />
     <ClInclude Include="Shaders.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="tiny_obj_loader.h" />
