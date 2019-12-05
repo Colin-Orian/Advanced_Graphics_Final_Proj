@@ -74,7 +74,7 @@ Mesh::Mesh(std::string fileName) {
 	int nv;
 	int nn;
 	int ni;
-
+	int nt;
 	int i;
 	struct _stat buf;
 	std::string binName = fileName + ".bin";
@@ -86,19 +86,21 @@ Mesh::Mesh(std::string fileName) {
 		result = _read(fid, &nv, (sizeof vertices));
 		result = _read(fid, &nn, (sizeof normals));
 		result = _read(fid, &ni, (sizeof indices));
-
-		printf("v: %d, n: %d i: %d\n", nv, nn, ni);
+		result = _read(fid, &nt, (sizeof textures));
+		printf("v: %d, n: %d i: %d t: %d\n", nv, nn, ni, nt);
 		vertices = new GLfloat[nv];
 		result = _read(fid, vertices, nv*(sizeof GLfloat));
 		normals = new GLfloat[nn];
 		result = _read(fid, normals, nn*(sizeof GLfloat));
 		indices = new GLuint[ni];
 		result = _read(fid, indices, ni * sizeof(GLuint));
+		textures = new GLfloat[nt];
+		result = _read(fid, textures, nt * sizeof(GLfloat));
+
 		_close(fid);
 	}
 	else {
 		/*  Load the obj file */
-		std::cout << "test" << std::endl;
 		std::string err = tinyobj::LoadObj(shapes, materials, objName.c_str(), 0);
 
 		if (!err.empty()) {
@@ -129,16 +131,25 @@ Mesh::Mesh(std::string fileName) {
 			indices[i] = shapes[0].mesh.indices[i];
 		}
 
+
+		nt = (int)shapes[0].mesh.texcoords.size();
+		textures = new GLfloat[nt];
+		for (int i = 0; i < nt; i++) {
+			textures[i] = shapes[0].mesh.texcoords[i];
+		}
 		int fid = _open(binName.c_str(), _O_WRONLY | _O_BINARY | _O_CREAT, _S_IREAD | _S_IWRITE);
 		result = _write(fid, &nv, (sizeof vertices));
 		result = _write(fid, &nn, (sizeof normals));
 		result = _write(fid, &ni, (sizeof indices));
+		result = _write(fid, &nt, (sizeof textures));
 		result = _write(fid, vertices, nv*(sizeof GLfloat));
 		result = _write(fid, normals, nn*(sizeof GLfloat));
 		result = _write(fid, indices, ni*(sizeof GLuint));
+		result = _write(fid, textures, nt * (sizeof GLfloat));
 		_close(fid);
 	}
 
+	/*
 	int vert = nv / 3;
 	int nt = 2 * vert;
 	textures = new GLfloat[nt];
@@ -150,7 +161,7 @@ Mesh::Mesh(std::string fileName) {
 		double phi = atan2(y, sqrt(x*x + z * z));
 		textures[2 * i] = fabs(theta) / M_PI;
 		textures[2 * i + 1] = phi / M_PI;
-	}
+	}*/
 
 	numVert = nv;
 	numNorm = nn;

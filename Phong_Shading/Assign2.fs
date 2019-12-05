@@ -3,11 +3,12 @@
  */
 
 #version 330 core
+uniform sampler2D tex;
 uniform vec3 lightPos[1];
 uniform vec4 lightColor[1];
 uniform int intensity[1];
 uniform vec3 Eye;
-uniform vec4 base;
+//uniform vec4 base;
 in vec3 normal;
 in vec3 f_position;
 in vec4 sPosition;
@@ -17,7 +18,7 @@ layout (location = 0 ) out vec4 norm_color;
 layout (location = 1) out vec4 bright_color;
 //Phong shading
 vec4 calcPhong(vec3 eyeToPos, vec4 curLightColor, vec3 curLightPos){
-
+	vec4 base = texture(tex, texCoords);
 	vec3 L = normalize(curLightPos - f_position);
 	vec3 R = normalize(reflect(-L,normal));
 	float eyeAngle = dot(eyeToPos, R);
@@ -54,7 +55,6 @@ void main() {
 		
 	}
 
-
 	bright_color.a = 1.0f;
-
+	
 }

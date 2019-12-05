@@ -23,8 +23,7 @@ void main() {
 	vec4 temp = transMat * vPosition;
 	f_position = temp.xyz;
 	gl_Position = projection * view * transMat * vPosition;
-	vec3 sphereNormal = (view * vec4(vPosition.xyz,1.0)).xyz;
-	normal = vPosition.xyz;
 	normal = vNormal;
+	texCoords = vTex;
 
 }

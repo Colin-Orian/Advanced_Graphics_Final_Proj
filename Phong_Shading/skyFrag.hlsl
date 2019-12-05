@@ -8,6 +8,5 @@ void main() {
 	colour.g = min(colour.g, 1.0f);
 	colour.b = min(colour.b, 1.0f);
 	gl_FragColor = colour;
-	gl_FragColor.a = 1.0f;
 
 }

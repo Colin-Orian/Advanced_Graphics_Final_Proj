@@ -1,5 +1,11 @@
 /************************************************************
-A Base for all by OpenGL projects.
+A Base for all my OpenGL projects.
+Cube Model https://gist.github.com/noonat/1131091
+Dragon Model https://www.youtube.com/watch?v=bcxX0R8nnDs
+	Source: Stanford University Computer Graphics Laboratory
+Sphere Model https://opengameart.org/content/seamless-square-uv-wrapped-sphere
+Water texture:	https://opengameart.org/content/texture-water
+				http://www.godsandidols.com/
 **********************************************************/
 #define GLM_FORCE_RADIANS
 #define _CRT_SECURE_NO_WARNINGS
@@ -58,6 +64,7 @@ GLuint hdrDepth; //depth buffer
 GLuint hdrColor; //Colour texture
 GLuint hdrBright; //Bloom texture
 
+GLuint waterTex;
 
 
 GLuint shaftBuff;
@@ -144,6 +151,18 @@ void init() {
 	createFramebufferTexture(&shaftDepth, WIDTH, HEIGHT, GL_DEPTH_COMPONENT32, GL_DEPTH_ATTACHMENT);
 
 
+	struct Texture* waterTexture = loadTexture("checkerboard.jpg");
+	glGenTextures(1, &waterTex);
+	glBindTexture(GL_TEXTURE_2D, waterTex);
+	glActiveTexture(GL_TEXTURE0);
+	std::cout << waterTexture->width << std::endl;
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, waterTexture->width, waterTexture->height);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, waterTexture->width, waterTexture->height, GL_RGB,
+		GL_UNSIGNED_BYTE, waterTexture->data);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	
+
 	struct Cube* textureCube = loadCube("./vancouverThing");
 	glGenTextures(1, &skyTex);
 	glActiveTexture(GL_TEXTURE0);
@@ -159,7 +178,7 @@ void init() {
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	//Create the meshes
-	Mesh sphere("sphere");
+	Mesh sphere("SphereUvWrapped");
 	planeMesh = Mesh(WIDTH, HEIGHT);
 	Mesh dragon("dragon");
 	//Store the meshes to be rendered
@@ -225,6 +244,10 @@ void render(Model model, int numTri, GLuint program) {
 	view = glm::lookAt(glm::vec3(eyex, eyey, eyez),
 		glm::vec3(0.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f));
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, waterTex);
+
 	loadUniformMat4(program, "view", view);
 	loadUniformMat4(program, "transMat", model.getTrans());
 	loadUniformMat4(program, "projection", projection);
@@ -291,7 +314,15 @@ void display(void) {
 	//Load the scene to a frame buffer and render it to a texture.
 	glBindFramebuffer(GL_FRAMEBUFFER, hdrBuff);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	renderSky();
+
+	//I don't want the sky to be included in the bloom effect so I clear the buffer for the 1st colour atacment
+	GLenum brightBuff[] = { GL_COLOR_ATTACHMENT1 };
+	glDrawBuffers(1, brightBuff);
+	glClear(GL_COLOR_BUFFER_BIT);
+
 	glUseProgram(preProssProg);
+	
 	GLenum buff[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
 	glViewport(0, 0, WIDTH, HEIGHT);
 	glDrawBuffers(2, buff);
@@ -300,6 +331,7 @@ void display(void) {
 		std::cout << status << std::endl;
 	}
 
+	
 	//render the spheres
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[0].objVAO);
 	meshes[0].loadAttrib(preProssProg);
@@ -310,17 +342,14 @@ void display(void) {
 	meshes[1].loadAttrib(preProssProg);
 	render(models[1], meshes[1].getTriangles(), preProssProg);
 	
-	renderSky();
-
-
 	renderParticles();
 
 	glBindFramebuffer(GL_FRAMEBUFFER, shaftBuff);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(shaftProg);
-	GLenum shaftBuff[] = { GL_COLOR_ATTACHMENT0 , GL_COLOR_ATTACHMENT1};
+	GLenum shaftBuff[] = { GL_COLOR_ATTACHMENT0};
 	glViewport(0, 0, WIDTH, HEIGHT);
-	glDrawBuffers(2, shaftBuff);
+	glDrawBuffers(1, shaftBuff);
 
 	meshes[0].loadAttrib(shaftProg);
 	render(models[0], meshes[0].getTriangles(), shaftProg);
