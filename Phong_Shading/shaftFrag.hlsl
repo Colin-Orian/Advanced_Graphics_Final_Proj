@@ -1,3 +1,4 @@
+
 uniform int isEmiter;
 layout(location = 0) out vec4 shaft_color;
 void main() {

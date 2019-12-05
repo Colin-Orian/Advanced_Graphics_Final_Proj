@@ -71,6 +71,9 @@ std::vector<Mesh> meshes;
 std::vector<Model> models;
 Mesh planeMesh;
 
+Model skybox;
+GLuint skyTex;
+
 double prevSecond;
 ParticleEmitter emitter(glm::vec3(-9.89f, 10.30f, 0.9732f), glm::vec3(-1.0f, 0.0f, 0.0f));
 
@@ -140,6 +143,21 @@ void init() {
 	createFramebufferTexture(&sunShaft, WIDTH, HEIGHT, GL_RGBA32F, GL_COLOR_ATTACHMENT0);
 	createFramebufferTexture(&shaftDepth, WIDTH, HEIGHT, GL_DEPTH_COMPONENT32, GL_DEPTH_ATTACHMENT);
 
+
+	struct Cube* textureCube = loadCube("./vancouverThing");
+	glGenTextures(1, &skyTex);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skyTex);
+	for (int i = 0; i < 6; i++) {
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, textureCube->width, textureCube->height,
+			0, GL_RGB, GL_UNSIGNED_BYTE, textureCube->data[i]);
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
 	//Create the meshes
 	Mesh sphere("sphere");
 	planeMesh = Mesh(WIDTH, HEIGHT);
@@ -148,10 +166,10 @@ void init() {
 	meshes.push_back(sphere);
 	meshes.push_back(dragon);
 
-	Mesh plane = Mesh("cube"); //Create a plane for particles
+	Mesh cube = Mesh("cube"); //Create a plane for particles
 
-	meshes.push_back(plane);
-	Model partModel = Model(plane);
+	meshes.push_back(cube);
+	Model partModel = Model(cube);
 	partModel.setColour(glm::vec3(1.0f, 1.0f, 1.0f));
 
 	Model sunModel = Model(sphere);
@@ -163,8 +181,14 @@ void init() {
 	dragonModel.setColour(glm::vec3(0.0f, 0.0f, 1.0f));
 	dragonModel.scale(glm::vec3(0.25, 0.25, 0.25));
 
+	skybox = Model(cube);
+	skybox.scale(glm::vec3(20.0f, 20.0f, 20.0f));
+
+
+
 	models.push_back(sunModel);
 	models.push_back(dragonModel);
+
 	
 
 }
@@ -228,6 +252,21 @@ void render(Model model, int numTri, GLuint program) {
 
 }
 
+void renderSky() {
+	glUseProgram(skyProg);
+	meshes[2].loadAttrib(skyProg);
+	glm::mat4 view;
+	view = glm::lookAt(glm::vec3(eyex, eyey, eyez),
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(0.0f, 0.0f, 1.0f));
+	loadUniformMat4(skyProg, "view", view);
+	loadUniformMat4(skyProg, "transMat", skybox.getTrans());
+	loadUniformMat4(skyProg, "projection", projection);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skyTex);
+	glDrawElements(GL_TRIANGLES, 3 * meshes[2].getTriangles(), GL_UNSIGNED_INT, NULL);
+}
+
 void renderParticles() {
 	glUseProgram(partProg);
 	meshes[2].loadAttrib(partProg);
@@ -245,6 +284,8 @@ void renderParticles() {
 	}
 	
 }
+
+
 
 void display(void) {
 	glEnable(GL_DEPTH);
@@ -270,6 +311,8 @@ void display(void) {
 	meshes[1].loadAttrib(preProssProg);
 	render(models[1], meshes[1].getTriangles(), preProssProg);
 	
+	renderSky();
+
 
 	renderParticles();
 

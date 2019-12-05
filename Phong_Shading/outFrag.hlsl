@@ -44,6 +44,7 @@ void main() {
 	bloomColor = bloom_on * bloomColor + (1 - bloom_on) * vec4(0.0f);
 
 
+	//https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch13.html
 	vec4 shaftColor = vec4(0.0f);
 	vec2 deltaTexCoord = fTexCoords - lightPos.xy;
 	deltaTexCoord *= 1.0f / (100 * 10.0f);
