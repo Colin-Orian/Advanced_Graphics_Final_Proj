@@ -225,7 +225,6 @@ void render(Model model, int numTri, GLuint program) {
 	view = glm::lookAt(glm::vec3(eyex, eyey, eyez),
 		glm::vec3(0.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f));
-
 	loadUniformMat4(program, "view", view);
 	loadUniformMat4(program, "transMat", model.getTrans());
 	loadUniformMat4(program, "projection", projection);
@@ -319,7 +318,7 @@ void display(void) {
 	glBindFramebuffer(GL_FRAMEBUFFER, shaftBuff);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(shaftProg);
-	GLenum shaftBuff[] = { GL_COLOR_ATTACHMENT0 };
+	GLenum shaftBuff[] = { GL_COLOR_ATTACHMENT0 , GL_COLOR_ATTACHMENT1};
 	glViewport(0, 0, WIDTH, HEIGHT);
 	glDrawBuffers(2, shaftBuff);
 
@@ -329,6 +328,7 @@ void display(void) {
 	meshes[1].loadAttrib(shaftProg);
 	render(models[1], meshes[1].getTriangles(), shaftProg);
 
+	
 	glDisable(GL_BLEND);
 	glDisable(GL_DEPTH); //depth buffer isn't needed for second render
 	//Bind the default frame buffer and then render to the screen
@@ -360,6 +360,9 @@ void display(void) {
 	glm::vec4 lightPosScreen = (projection * view * glm::vec4(models[0].getPos(), 1.0f)); //Convert the light's position into screen space
 	loadUniform3f(postProssProg, "lightPos", lightPosScreen.x, lightPosScreen.y, lightPosScreen.z);
 
+	//Simulate the effects of a day / night cycle by changing the exposure each frame
+	float exposure = sin(getSeconds() / 2.0f) +1.2f; 
+	loadUniform1f(postProssProg, "exposure", exposure);
 	glViewport(0, 0, WIDTH, HEIGHT);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, planeMesh.objVAO);
 	planeMesh.loadPlane(postProssProg);

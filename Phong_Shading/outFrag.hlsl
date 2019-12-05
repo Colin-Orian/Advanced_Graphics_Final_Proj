@@ -5,6 +5,7 @@ uniform sampler2D shaftTex;
 uniform int hdr_on;
 uniform int bloom_on;
 uniform vec3 lightPos;
+uniform float exposure;
 in vec2 fTexCoords;
 
 //HDR tutorial found here https://learnopengl.com/Advanced-Lighting/HDR
@@ -62,19 +63,18 @@ void main() {
 
 	bloomColor += shaftColor * 0.5f;
 
-	float exposure = 1.0f;
-	const float gamma = 2.2;
+	//Tone mapping
+	//float exposure = 2.2f;
+	const float gamma = 2.2f;
 	vec3 hdrColor = texture(tex, fTexCoords).xyz;
 	hdrColor += bloomColor.xyz;
 	vec3 mapped = vec3(1.0f) - exp(-hdrColor * exposure);
 	mapped = pow(mapped, vec3(1.0f / gamma));
 	vec4 preBloom = hdr_on * vec4(mapped, 1.0f) + (1- hdr_on) * vec4(hdrColor, 1.0f);
 
-	
-
-
 	gl_FragColor = preBloom;
 	
-	//gl_FragColor = texture(bloomTex, fTexCoords);
 	gl_FragColor.a = 1.0f;
+
+	//gl_FragColor = texture(bloomTex, fTexCoords);
 }
