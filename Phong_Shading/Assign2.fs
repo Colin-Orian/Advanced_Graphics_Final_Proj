@@ -30,8 +30,10 @@ float normalDistrib(vec3 N, vec3 halfwayVec, float roughness){
 }
 
 float schlick(vec3 N, vec3 eyeDir, float roughness){
+	float k = (roughness+1) * (roughness+1);
+	k = k / 8;
 	float numerator = max(dot(N, eyeDir), 0.0f);
-	float demoniator = numerator * (1- roughness) + roughness;
+	float demoniator = numerator * (1- k) + k;
 	return numerator / demoniator;
 }
 
@@ -40,7 +42,7 @@ float schlickFinal(vec3 N, vec3 eyeDir, vec3 lightDir, float roughness){
 }
 
 vec3 fersnel(vec3 halfwayVec, vec3 eyeDir, vec3 baseReflect){
-	vec3 temp = (vec3(1.0f)- baseReflect) * pow((1 - dot(halfwayVec, eyeDir)), 5.0);
+	vec3 temp = (vec3(1.0f)- baseReflect) * pow(1 - max(dot(halfwayVec, eyeDir), 0.0f), 5.0);
 	return baseReflect + temp;
 }
 
@@ -49,8 +51,9 @@ vec3 cookTorrance(vec3 eyeDir, vec3 lightDir, vec3 halfwayVec, vec3 N, float rou
 	vec3 numerator = normalDistrib(N, halfwayVec, roughness) * schlickFinal(N, eyeDir, lightDir, roughness) *
 					  fersnel(halfwayVec, eyeDir, baseReflect);
 
-	float denominator = 4 * dot(eyeDir, N) * dot(lightDir, N);
+	float denominator = 4 * max(dot(eyeDir, N), 0.0f) * max(dot(lightDir, N), 0.0f);
 	return numerator / denominator;
+	//return denominator;
 }
 
 float calcSpec(){
@@ -63,6 +66,7 @@ vec3 bdrf(vec3 eyeDir, vec3 lightDir, vec3 halfwayVec, vec3 N, float roughness, 
 	vec3 lambert = baseColor / PI;
 
 	return refractFactor * lambert + reflectFactor * cookTorrance(eyeDir, lightDir, halfwayVec, N, roughness);
+
 }
 
 
@@ -102,19 +106,16 @@ vec4 calcPhong(vec3 eyeToPos, vec4 curLightColor, vec3 curLightPos){
 void main() {
 	vec4 white = vec4(1.0, 1.0, 1.0, 1.0);
 	vec3 eyeToPos = normalize(Eye - f_position);
+	vec3 lightDir = normalize(lightPos[0] - f_position);
 	vec4 result = vec4(0);
 	for(int i = 0; i < 1; i ++){
 		result += intensity[i] * calcPhong(eyeToPos, lightColor[i], lightPos[i]);
 	}
 	
-
-
-
 	vec3 N = normalize(normal);
-	vec3 lightDir = lightPos[0] - f_position;
-	vec3 halfwayVec = normalize(lightDir + eyeToPos);
-	result = vec4(schlickFinal(N, eyeToPos, lightDir, 0.5));
-	result = vec4(fersnel(halfwayVec, eyeToPos, vec3(0.5f, 0.5f, 0.5f)), 1.0f);
+	
+	vec3 halfwayVec = normalize(lightDir + N);
+	result = vec4(bdrf(eyeToPos, lightDir, halfwayVec, N, 0.5, vec3(1.00, 0.71, 0.29)), 1.0f);
 	norm_color = result;
 	norm_color.a = 1.0;
 
