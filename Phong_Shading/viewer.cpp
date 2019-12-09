@@ -196,9 +196,11 @@ void init() {
 	sunModel.translate(glm::vec3(0.0f, 4.0f, 4.0f));
 	sunModel.toggleEmiter();
 
-	Model dragonModel = Model(dragon);
-	dragonModel.setColour(glm::vec3(0.0f, 0.0f, 1.0f));
-	dragonModel.scale(glm::vec3(0.25, 0.25, 0.25));
+	Model focusObject = Model(sphere);
+	focusObject.setColour(glm::vec3(1.0f, 0.0f, 0.0f));
+	//Model dragonModel = Model(dragon);
+	//dragonModel.setColour(glm::vec3(0.0f, 0.0f, 1.0f));
+	//dragonModel.scale(glm::vec3(0.25, 0.25, 0.25));
 
 	skybox = Model(cube);
 	skybox.scale(glm::vec3(20.0f, 20.0f, 20.0f));
@@ -206,7 +208,7 @@ void init() {
 
 
 	models.push_back(sunModel);
-	models.push_back(dragonModel);
+	models.push_back(focusObject);
 
 	
 
@@ -316,7 +318,7 @@ void display(void) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	renderSky();
 
-	//I don't want the sky to be included in the bloom effect so I clear the buffer for the 1st colour atacment
+	//I don't want the sky to be included in the bloom effect so I clear the buffer for the 1st colour attachment
 	GLenum brightBuff[] = { GL_COLOR_ATTACHMENT1 };
 	glDrawBuffers(1, brightBuff);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -338,11 +340,11 @@ void display(void) {
 	render(models[0], meshes[0].getTriangles(), preProssProg);
 
 	//Render the Dragon
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[1].objVAO);
-	meshes[1].loadAttrib(preProssProg);
-	render(models[1], meshes[1].getTriangles(), preProssProg);
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshes[1].objVAO);
+	//meshes[0].loadAttrib(preProssProg);
+	render(models[1], meshes[0].getTriangles(), preProssProg);
 	
-	renderParticles();
+	//renderParticles();
 
 	glBindFramebuffer(GL_FRAMEBUFFER, shaftBuff);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
