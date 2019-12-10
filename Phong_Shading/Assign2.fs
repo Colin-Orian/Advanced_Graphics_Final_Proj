@@ -20,9 +20,11 @@ layout (location = 1) out vec4 bright_color;
 const float PI = 3.14159265f; //https://www.gamedev.net/forums/topic/529611-pi-in-hlsl/
 
 //https://learnopengl.com/PBR/Theory
+//Distribution for the BDRF
 float normalDistrib(vec3 N, vec3 halfwayVec, float roughness){
-	float numerator = roughness * roughness;
-	float denominator =  dot(N,halfwayVec) * dot(N,halfwayVec) * (numerator-1);
+	float temp = roughness * roughness;//Disney and Epic Games found squring the roughness is better
+	float numerator = temp * temp; 
+	float denominator =  max(dot(N,halfwayVec), 0.0f) * max(dot(N,halfwayVec), 0.0f) * (numerator-1);
 	denominator += 1;
 	denominator = denominator * denominator;
 	denominator = PI * denominator;
@@ -30,99 +32,75 @@ float normalDistrib(vec3 N, vec3 halfwayVec, float roughness){
 }
 
 float schlick(vec3 N, vec3 eyeDir, float roughness){
-	float k = (roughness+1) * (roughness+1);
+	float r = (roughness +1) * (roughness +1);
+	float k = r * r; //Disney and Epic Games found squring the roughness is better
 	k = k / 8;
 	float numerator = max(dot(N, eyeDir), 0.0f);
 	float demoniator = numerator * (1- k) + k;
 	return numerator / demoniator;
 }
-
+//Geometry for the BDRF
 float schlickFinal(vec3 N, vec3 eyeDir, vec3 lightDir, float roughness){
 	return schlick(N, eyeDir, roughness) * schlick(N, lightDir, roughness);
 }
-
+//Fersnel for the BDRF
 vec3 fersnel(vec3 halfwayVec, vec3 eyeDir, vec3 baseReflect){
 	vec3 temp = (vec3(1.0f)- baseReflect) * pow(1 - max(dot(halfwayVec, eyeDir), 0.0f), 5.0);
 	return baseReflect + temp;
 }
 
-vec3 cookTorrance(vec3 eyeDir, vec3 lightDir, vec3 halfwayVec, vec3 N, float roughness){
-	vec3 baseReflect = vec3(1.00, 0.71, 0.29);
-	vec3 numerator = normalDistrib(N, halfwayVec, roughness) * schlickFinal(N, eyeDir, lightDir, roughness) *
-					  fersnel(halfwayVec, eyeDir, baseReflect);
-
-	float denominator = 4 * max(dot(eyeDir, N), 0.0f) * max(dot(lightDir, N), 0.0f);
-	return numerator / denominator;
-	//return denominator;
-}
-
-float calcSpec(){
-	return 0.5f;
-}
-vec3 bdrf(vec3 eyeDir, vec3 lightDir, vec3 halfwayVec, vec3 N, float roughness, vec3 baseColor){
-	float reflectFactor = calcSpec();
-	float refractFactor = 1.0f - reflectFactor;
-
+vec3 bdrf(vec3 eyeDir, vec3 lightDir, vec3 halfwayVec, vec3 N, float roughness, vec3 baseColor, vec3 radience){
+	float metalic = 0.2f;
 	vec3 lambert = baseColor / PI;
+	vec3 baseReflect = vec3(1.0f, 0.0f, 0.0f); //mix the albedo with the metalic
+	baseReflect = mix(baseReflect, vec3(0.0f, 1.0f, 0.0f), metalic);
 
-	return refractFactor * lambert + reflectFactor * cookTorrance(eyeDir, lightDir, halfwayVec, N, roughness);
 
+	//Cook torrance
+	float ND = normalDistrib(N, halfwayVec, roughness) * schlickFinal(N, eyeDir, lightDir, roughness);
+	vec3 F = fersnel(halfwayVec, eyeDir, baseReflect);
+	vec3 numerator = ND * F;
+	float denominator = 4 * max(dot(eyeDir, N), 0.0f) * max(dot(lightDir, N), 0.0f);
+	denominator = max(denominator, 0.0001);
+
+	vec3 reflectFactor = F;
+	vec3 refractFactor = vec3(1.0f) - reflectFactor;
+	refractFactor *= 1.0f - metalic; //metalic only affects reflected colours. Remove metalic from the refractFactor factor
+	vec3 specular = (numerator / denominator);
+	vec3 completedBdrf = refractFactor * lambert + F *  specular;
+
+	vec3 L0 = (refractFactor * baseColor / PI + specular) * radience * max(dot(N, lightDir), 0.0f);
+	
+
+	return L0;
+	
 }
 
-
-vec3 calcPhysical(vec3 eyeDir, vec3 lightDir, vec3 halfwayVec, vec3 N, vec3 roughness, vec3 baseColor){
-	int steps =  100;
-	vec3 result = vec3(0);
-	float delta = 1.0f / 100;
-	for(int i = 0; i < steps; i ++){
-		//result += bdrf(eyeDir, lightDir, halfwayVec, N, roughness, baseColor);
-	}
-
-	return result;
-
-}
-
-vec4 calcPhong(vec3 eyeToPos, vec4 curLightColor, vec3 curLightPos){
-	vec4 base = texture(tex, texCoords);
-	vec3 L = normalize(curLightPos - f_position);
-	vec3 R = normalize(reflect(-L,normal));
-	float eyeAngle = dot(eyeToPos, R);
-	vec3 N;
-	float specular;
-	N = normalize(normal);
-	float diffuse = dot(N,L);
-	if(diffuse < 0.0) {
-		diffuse = 0.0;
-		specular = 0.0;
-
-	} else {
-		specular = pow(max(0.0, eyeAngle), 16);
-	}
-
-	vec4 result = (0.5 * base + 0.6 * diffuse * base + 0.6 *specular * curLightColor);
-	return result;
-}
 
 void main() {
 	vec4 white = vec4(1.0, 1.0, 1.0, 1.0);
 	vec3 eyeToPos = normalize(Eye - f_position);
 	vec3 lightDir = normalize(lightPos[0] - f_position);
-	vec4 result = vec4(0);
-	for(int i = 0; i < 1; i ++){
-		result += intensity[i] * calcPhong(eyeToPos, lightColor[i], lightPos[i]);
-	}
-	
+	vec3 result = vec3(0);
 	vec3 N = normalize(normal);
-	
 	vec3 halfwayVec = normalize(lightDir + N);
-	result = vec4(bdrf(eyeToPos, lightDir, halfwayVec, N, 0.5, vec3(1.00, 0.71, 0.29)), 1.0f);
-	norm_color = result;
+
+	float attenuation = 1/ (length(lightPos[0] - f_position) * length(lightPos[0] - f_position));
+	attenuation = normalize(attenuation);
+	vec3 radience = attenuation * lightColor[0].xyz * max(dot(lightDir, N), 0.0f);
+	
+	result = bdrf(eyeToPos, lightDir, halfwayVec, N, 0.0, vec3(0.00, 0.89, 0.70), radience);
+	
+	vec3 ambient = vec3(0.03) * vec3(0.00, 0.89, 0.70) * 0.5f;	
+	result = result / (result + vec3(1.0f));
+	result = pow(result, vec3(1.0f/2.2));
+	
+	norm_color = vec4(result, 1.0f);
 	norm_color.a = 1.0;
 
 	bright_color = vec4(0.0f);
 	if(result.x > 1.3f || result.y > 1.3f || result.z > 1.3f){
-		bright_color = result;
-		
+		bright_color = vec4(result,1.0f);
 	}
 	
 	bright_color.a = 1.0f;
