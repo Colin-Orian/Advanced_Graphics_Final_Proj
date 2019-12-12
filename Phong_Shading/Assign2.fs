@@ -54,11 +54,11 @@ void main() {
 
 	//Material info
 	vec3 albedo = vec3(0.00, 0.89, 0.70);
-	float metalic = 0.2f;
-	float roughness = 0.0f;
+	float metalic = 0.0f;
+	float roughness = 0.6f;
 	vec3 baseReflect = vec3(1.0f, 0.0f, 0.0f);
 	baseReflect = mix(baseReflect, albedo, metalic);
-
+	float a0 = 1.0f;
 
 	vec3 eyeToPos = normalize(Eye - f_position);
 	
@@ -81,7 +81,7 @@ void main() {
 		float ND = normalDistrib(N, halfwayVec, roughness) * schlickFinal(N, eyeToPos, lightDir, roughness);
 		vec3 F = fersnel(halfwayVec, eyeToPos, baseReflect);
 		vec3 numerator = ND * F;
-		float denominator = 4 * eyeDotNorm * lightDotNorm;
+		float denominator = max(4 * eyeDotNorm * lightDotNorm, 0.0001);
 
 
 		vec3 reflectFactor = F;
@@ -89,11 +89,15 @@ void main() {
 		refractFactor *= 1.0f - metalic; //metalic only affects reflected colours. Remove metalic from the refractFactor factor
 		vec3 specular = (numerator / denominator);
 		L0 += (refractFactor * albedo / PI + specular) * radience * lightDotNorm;
+		
+		if(denominator == 0){
+			L0 = vec3(1.0f, 0.0f, 0.0f);
+		}
+		//L0 = vec3(reflectFactor);
 	}
-
-	//result = bdrf(eyeToPos, lightDir, halfwayVec, N, 0.0, baseColor , radience);
 	result = L0;
-	vec3 ambient = vec3(0.03) * vec3(0.00, 0.89, 0.70) * 0.5f;	
+	vec3 ambient = vec3(0.3) * albedo * a0;	
+	result += ambient;
 	result = result / (result + vec3(1.0f));
 	result = pow(result, vec3(1.0f/2.2));
 	
