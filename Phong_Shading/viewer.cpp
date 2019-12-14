@@ -4,8 +4,7 @@ Cube Model https://gist.github.com/noonat/1131091
 Dragon Model https://www.youtube.com/watch?v=bcxX0R8nnDs
 	Source: Stanford University Computer Graphics Laboratory
 Sphere Model https://opengameart.org/content/seamless-square-uv-wrapped-sphere
-Water texture:	https://opengameart.org/content/texture-water
-				http://www.godsandidols.com/
+Red Laips Material: https://opengameart.org/content/red-lapis-1
 **********************************************************/
 #define GLM_FORCE_RADIANS
 #define _CRT_SECURE_NO_WARNINGS
@@ -45,6 +44,13 @@ struct Light {
 	float intensity;
 };
 
+struct Material {
+	GLuint color;
+	GLuint metal;
+	GLuint rough;
+	GLuint displace;
+	GLuint a0;
+};
 
 
 float eyex, eyey, eyez;	// current user position
@@ -65,7 +71,7 @@ GLuint hdrColor; //Colour texture
 GLuint hdrBright; //Bloom texture
 
 GLuint waterTex;
-
+Material gold;
 
 GLuint shaftBuff;
 GLuint sunShaft; //Sun Shaft texture
@@ -90,6 +96,8 @@ unsigned int HEIGHT = 512;
 
 int HDR_ON = 1;
 int BLOOM_ON = 1;
+int ROUGH_ON = 1;
+int METAL_ON = 1;
 double getSeconds() {
 	LARGE_INTEGER freq, val;
 	QueryPerformanceFrequency(&freq);
@@ -151,16 +159,19 @@ void init() {
 	createFramebufferTexture(&shaftDepth, WIDTH, HEIGHT, GL_DEPTH_COMPONENT32, GL_DEPTH_ATTACHMENT);
 
 
-	struct Texture* waterTexture = loadTexture("checkerboard.jpg");
-	glGenTextures(1, &waterTex);
-	glBindTexture(GL_TEXTURE_2D, waterTex);
-	glActiveTexture(GL_TEXTURE0);
-	std::cout << waterTexture->width << std::endl;
-	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, waterTexture->width, waterTexture->height);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, waterTexture->width, waterTexture->height, GL_RGB,
-		GL_UNSIGNED_BYTE, waterTexture->data);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	struct Texture* waterTexture = loadTexture("checkerboard.jpg", "jpg");
+	createTexture(&waterTex, *waterTexture);
+	
+	
+	struct Texture* color = loadTexture("./redLapisMaterial/Main_Base_Color.jpg", "jpg");
+	struct Texture* met = loadTexture("./redLapisMaterial/Main_Metallic.jpg", "jpg");
+	struct Texture* rgh = loadTexture("./redLapisMaterial/Main_Roughness.jpg", "jpg");
+	
+	createTexture(&gold.color, *color);
+	
+	createTexture(&gold.metal, *met);
+	
+	createTexture(&gold.rough, *rgh);
 	
 
 	struct Cube* textureCube = loadCube("./vancouverThing");
@@ -198,9 +209,7 @@ void init() {
 
 	Model focusObject = Model(sphere);
 	focusObject.setColour(glm::vec3(1.0f, 0.0f, 0.0f));
-	//Model dragonModel = Model(dragon);
-	//dragonModel.setColour(glm::vec3(0.0f, 0.0f, 1.0f));
-	//dragonModel.scale(glm::vec3(0.25, 0.25, 0.25));
+	focusObject.scale(glm::vec3(2.0f, 2.0f, 2.0f));
 
 	skybox = Model(cube);
 	skybox.scale(glm::vec3(20.0f, 20.0f, 20.0f));
@@ -248,7 +257,18 @@ void render(Model model, int numTri, GLuint program) {
 		glm::vec3(0.0f, 0.0f, 1.0f));
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, waterTex);
+	glBindTexture(GL_TEXTURE_2D, gold.color);
+	loadUniform1i(program, "colorTex", 0);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, gold.metal);
+	loadUniform1i(program, "metalTex", 0);
+	loadUniform1i(program, "metal_on", METAL_ON);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, gold.rough);
+	loadUniform1i(program, "roughTex", 0);
+	loadUniform1i(program, "rough_on", ROUGH_ON);
 
 	loadUniformMat4(program, "view", view);
 	loadUniformMat4(program, "transMat", model.getTrans());
@@ -427,6 +447,32 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		else {
 			printf("BLOOM_ON\n");
 			BLOOM_ON = 1;
+			//lights[1].intensity = 1.5f;
+		}
+	}
+
+	if (key == GLFW_KEY_3 && action == GLFW_PRESS) {
+		if (ROUGH_ON == 1) {
+			printf("ROUGH_OFF\n");
+			ROUGH_ON = 0;
+			//lights[1].intensity = 0.5f;
+		}
+		else {
+			printf("ROUGH_ON\n");
+			ROUGH_ON = 1;
+			//lights[1].intensity = 1.5f;
+		}
+	}
+
+	if (key == GLFW_KEY_4 && action == GLFW_PRESS) {
+		if (METAL_ON == 1) {
+			printf("METAL_OFF\n");
+			METAL_ON = 0;
+			//lights[1].intensity = 0.5f;
+		}
+		else {
+			printf("METAL_ON\n");
+			METAL_ON = 1;
 			//lights[1].intensity = 1.5f;
 		}
 	}

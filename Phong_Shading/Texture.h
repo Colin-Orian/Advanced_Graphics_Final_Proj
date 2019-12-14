@@ -23,8 +23,9 @@ struct Cube {
 	int depth;
 	unsigned char *data[6];
 };
-
-struct Texture *loadTexture(const char *filename);
-struct Cube *loadCube(const char *basename); 
+Texture * loadTexture(const char * filename, const char * fileFormat);
+struct Cube *loadCube(const char *basename);
 
 void createFramebufferTexture(GLuint *tex, unsigned int WIDTH, unsigned int HEIGHT, GLenum type, GLenum target);
+
+void createTexture(GLuint * texLoc, Texture texture);

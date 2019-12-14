@@ -3,12 +3,17 @@
  */
 
 #version 330 core
-uniform sampler2D tex;
+uniform sampler2D colorTex;
+uniform sampler2D metalTex;
+uniform sampler2D roughTex;
+uniform int metal_on;
+uniform int rough_on;
+
 uniform vec3 lightPos[1];
 uniform vec4 lightColor[1];
 uniform int intensity[1];
 uniform vec3 Eye;
-//uniform vec4 base;
+
 in vec3 normal;
 in vec3 f_position;
 in vec4 sPosition;
@@ -53,12 +58,22 @@ void main() {
 	vec4 white = vec4(1.0, 1.0, 1.0, 1.0);
 
 	//Material info
-	vec3 albedo = vec3(0.00, 0.89, 0.70);
-	float metalic = 0.0f;
-	float roughness = 0.6f;
-	vec3 baseReflect = vec3(1.0f, 0.0f, 0.0f);
+	vec3 albedo = texture(colorTex, texCoords).xyz;
+
+	//Authors tend to make their materials using sRGB. Pow to convert it back into linear
+	albedo.x = pow(albedo.x, 2.2f);
+	albedo.y = pow(albedo.y, 2.2f);
+	albedo.z = pow(albedo.z, 2.2f);
+
+	float metalic = texture(metalTex, texCoords).x;
+	float roughness = texture(roughTex, texCoords).x;
+
+	roughness = rough_on * roughness + (rough_on -1) * 0.5f;
+	metalic = metal_on * metalic + (metal_on -1) * 0.5f;
+
+	vec3 baseReflect = vec3(1.0f, 1.0f, 1.0f);
 	baseReflect = mix(baseReflect, albedo, metalic);
-	float a0 = 1.0f;
+	float a0 = 0.5f;
 
 	vec3 eyeToPos = normalize(Eye - f_position);
 	
@@ -100,7 +115,6 @@ void main() {
 	result += ambient;
 	result = result / (result + vec3(1.0f));
 	result = pow(result, vec3(1.0f/2.2));
-	
 	norm_color = vec4(result, 1.0f);
 	norm_color.a = 1.0;
 
